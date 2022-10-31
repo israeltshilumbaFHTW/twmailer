@@ -208,8 +208,6 @@ void *clientCommunication(void *data)
         // code handling hier
         printf("Message received: %s\n", buffer); // ignore error
 
-        // save Message
-
         if (send(*current_socket, "OK", 3, 0) == -1)
         {
             perror("send answer failed");

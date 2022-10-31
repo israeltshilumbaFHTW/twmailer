@@ -10,14 +10,12 @@ public:
         this->filename = filename;
     }
 
-    void addEntry(string receiver, string message, string id)
+    void addEntry(string message)
     {
         ofstream file;
         file.open(this->filename, std::ios::app);
 
-        file << receiver << ",";
-        file << message << ",";
-        file << id << "\n";
+        file << message << "\n";
         file.close();
     }
 

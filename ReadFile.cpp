@@ -48,9 +48,9 @@ public:
 
     void printFile()
     {
-        for (int i = 0; i < content.size(); i++)
+        for (long unsigned int i = 0; i < content.size(); i++)
         {
-            for (int j = 0; j < content[i].size(); j++)
+            for (long unsigned int j = 0; j < content[i].size(); j++)
             {
                 cout << content[i][j] << " ";
             }

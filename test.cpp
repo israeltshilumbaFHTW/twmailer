@@ -6,10 +6,10 @@
 int main() {
     ReadFile *file = new ReadFile("test.csv");
     file -> openFile();
-    file ->printFile();
+    //file ->printFile();
 
     WriteFile *writefile = new WriteFile("test.csv");
-    writefile -> addEntry("4", "add", "gernot");
+    //writefile -> addEntry("4", "add", "gernot");
 
     
 
