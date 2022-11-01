@@ -28,6 +28,10 @@ public:
         this->pathname = "mail-spool-directory/" + this->filename;
     }
 
+    vector<vector<string>> getContent() {
+        return this->content;
+    }
+
     void openFile()
     {
         string line, word;
@@ -63,14 +67,13 @@ public:
     {
         return this->messageCount;
     }
-    void addEntry(string sender, string receiver, string subject, string message, string id)
+    void addEntry(string sender, string receiver, string subject, string message)
     {
         file.open(this->pathname, std::ios::app);
         file << sender << ",";
         file << receiver << ",";
         file << subject << ",";
-        file << message << ",";
-        file << id << "\n";
+        file << message << "\n";
         file.close();
     }
 
