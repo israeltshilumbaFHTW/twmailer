@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#include "request.cpp"
+#include "FileHandling/ReadFile.cpp"
+#include "WriteFile.cpp"
 
 #define BUF 1024
 #define PORT 6543
@@ -158,6 +161,7 @@ int main(void)
 void *clientCommunication(void *data)
 {
     char buffer[BUF];
+    char clientData[BUF];
     int size;
     int *current_socket = (int *)data;
 
@@ -207,7 +211,29 @@ void *clientCommunication(void *data)
         buffer[size] = '\0';
         // code handling hier
         printf("Message received: %s\n", buffer); // ignore error
-
+        printf("Enter command: ");
+        fflush(stdout);
+        fgets(clientData, BUF, stdin);
+        if (strcmp(clientData, "send\n") == 0) {
+            strcpy(buffer, request_send());
+            ReadFile *file = new ReadFile("test.csv");
+            file -> openFile();
+            //file ->printFile();
+            WriteFile *writefile = new WriteFile("test.csv");
+            writefile -> addEntry(buffer);
+        } else if (strcmp(clientData, "list\n") == 0) {
+            // strcpy(buffer, request_list());
+        } else if (strcmp(clientData, "read\n") == 0) {
+            // strcpy(buffer, request_read_or_del("READ"));
+        } else if (strcmp(clientData, "del\n") == 0) {
+            // strcpy(buffer, request_read_or_del("DEL"));
+        } else if (strcmp(clientData, "quit\n") == 0) {
+            // strcpy(buffer, buffer);
+            break;
+        } else {
+            printf("\nPLEASE ENTER VALID COMMAND TO CONTINUE:\nSEND--LIST--READ--DEL--QUIT\n");
+            continue;
+        }
         if (send(*current_socket, "OK", 3, 0) == -1)
         {
             perror("send answer failed");

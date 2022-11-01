@@ -6,9 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h> 
-#include "request.cpp"
-#include "ReadFile.cpp"
-#include "WriteFile.cpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -161,27 +158,6 @@ int main(int argc, char **argv)
                break;
             }
          }
-      }
-
-      if (strcmp(clientData, "send\n") == 0) {
-         strcpy(buffer, request_send());
-         ReadFile *file = new ReadFile("test.csv");
-         file -> openFile();
-         //file ->printFile();
-         WriteFile *writefile = new WriteFile("test.csv");
-         writefile -> addEntry(buffer);
-      } else if (strcmp(clientData, "list\n") == 0) {
-         // strcpy(buffer, request_list());
-      } else if (strcmp(clientData, "read\n") == 0) {
-         // strcpy(buffer, request_read_or_del("READ"));
-      } else if (strcmp(clientData, "del\n") == 0) {
-         // strcpy(buffer, request_read_or_del("DEL"));
-      } else if (strcmp(clientData, "quit\n") == 0) {
-         // strcpy(buffer, buffer);
-         break;
-      } else {
-         printf("\nPLEASE ENTER VALID COMMAND TO CONTINUE:\nSEND--LIST--READ--DEL--QUIT\n");
-         continue;
       }
    } while (!isQuit);
 
