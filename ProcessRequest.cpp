@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include <sstream>
 
 #include "Request.cpp"
@@ -7,12 +6,14 @@
 class ProcessRequest
 {
 
+private:
+    std::string requestString;
+    std::vector<std::string> requestList;
+
 public:
-    /*
-            ProcessRequest(std::string requestString) {
+            ProcessRequest(std::string &requestString) {
                 this->requestString = requestString;
             }
-    */
 
     void initRequest()
     {
@@ -21,15 +22,12 @@ public:
     void readRequest()
     {
         std::string entry;
-        std::string longString;
-
-        std::cin >> longString;
-        requestList = parseRequest(longString, "\\n");
+        this->requestList = parseRequest(this->requestString, "\\n");
     }
 
     void printRequestList()
     {
-        for (int i = 0; i < this->requestList.size(); i++)
+        for (int i = 0; i < (int)this->requestList.size(); i++)
         {
             std::cout << "Entry: " << this->requestList.at(i) << std::endl;
         }
@@ -57,7 +55,4 @@ public:
         return requestList;
     }
 
-private:
-    std::string requestString;
-    std::vector<std::string> requestList;
 };
