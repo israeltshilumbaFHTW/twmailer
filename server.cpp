@@ -8,8 +8,10 @@
 #include <string.h>
 #include <signal.h>
 #include "request.cpp"
-#include "FileHandling/ReadFile.cpp"
+#include "FileHandling/File.cpp"
+#include "ProcessRequest.cpp"
 #include "WriteFile.cpp"
+#include "RequestBody/SendBody.cpp"
 
 #define BUF 1024
 #define PORT 6543
@@ -210,30 +212,52 @@ void *clientCommunication(void *data)
 
         buffer[size] = '\0';
         // code handling hier
+        std::string buffStr = buffer;
         printf("Message received: %s\n", buffer); // ignore error
-        printf("Enter command: ");
-        fflush(stdout);
-        fgets(clientData, BUF, stdin);
-        if (strcmp(clientData, "send\n") == 0) {
-            strcpy(buffer, request_send());
-            ReadFile *file = new ReadFile("test.csv");
-            file -> openFile();
-            //file ->printFile();
-            WriteFile *writefile = new WriteFile("test.csv");
-            writefile -> addEntry(buffer);
-        } else if (strcmp(clientData, "list\n") == 0) {
+                                                  //
+        ProcessRequest *parser = new ProcessRequest(buffStr);
+        parser->readRequest();
+        std::vector<string> requestList = parser->getRequest();
+
+        //printf("Enter command: ");
+        //fflush(stdout);
+        //fgets(clientData, BUF, stdin);
+
+        //
+        std::cout << "DEBUG: " << requestList[0] << std::endl;
+        if(requestList.size() < 4) cout << "too few arguments" << endl;
+        if (requestList[0] == "send" || requestList[0] == "SEND")  
+        {
+            std::cout << "Send start" << std::endl;
+            SendBody *sendBody = new SendBody(requestList[1], requestList[2], requestList[3], requestList[4]);
+            File *file = new File(sendBody->getReceiver() + ".csv");
+            file->openFile();
+            file->addEntry( sendBody->getSender(), 
+                            sendBody->getReceiver(), 
+                            sendBody -> getSubject(), 
+                            sendBody -> getMessage());
+        //send\nsender\ntest\nsubject\nmessage\n
+
+            // file ->printFile();
+        }
+        else if (strcmp(clientData, "list\n") == 0)
+        {
             // strcpy(buffer, request_list());
-        } else if (strcmp(clientData, "read\n") == 0) {
+        }
+        else if (strcmp(clientData, "read\n") == 0)
+        {
             // strcpy(buffer, request_read_or_del("READ"));
-        } else if (strcmp(clientData, "del\n") == 0) {
+        }
+        else if (strcmp(clientData, "del\n") == 0)
+        {
             // strcpy(buffer, request_read_or_del("DEL"));
-        } else if (strcmp(clientData, "quit\n") == 0) {
+        }
+        else if (strcmp(clientData, "quit\n") == 0)
+        {
             // strcpy(buffer, buffer);
             break;
-        } else {
-            printf("\nPLEASE ENTER VALID COMMAND TO CONTINUE:\nSEND--LIST--READ--DEL--QUIT\n");
-            continue;
         }
+
         if (send(*current_socket, "OK", 3, 0) == -1)
         {
             perror("send answer failed");
