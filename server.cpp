@@ -12,6 +12,7 @@
 #include "ProcessRequest.cpp"
 #include "WriteFile.cpp"
 #include "RequestBody/SendBody.cpp"
+#include "RequestBody/ListBody.cpp"
 
 #define BUF 1024
 #define PORT 6543
@@ -219,29 +220,43 @@ void *clientCommunication(void *data)
         parser->readRequest();
         std::vector<string> requestList = parser->getRequest();
 
-        //printf("Enter command: ");
-        //fflush(stdout);
-        //fgets(clientData, BUF, stdin);
+        // printf("Enter command: ");
+        // fflush(stdout);
+        // fgets(clientData, BUF, stdin);
 
         //
         std::cout << "DEBUG: " << requestList[0] << std::endl;
-        if(requestList.size() < 4) cout << "too few arguments" << endl;
-        if (requestList[0] == "send" || requestList[0] == "SEND")  
+        if (requestList[0] == "send" || requestList[0] == "SEND")
         {
             std::cout << "Send start" << std::endl;
             SendBody *sendBody = new SendBody(requestList[1], requestList[2], requestList[3], requestList[4]);
             File *file = new File(sendBody->getReceiver() + ".csv");
             file->openFile();
-            file->addEntry( sendBody->getSender(), 
-                            sendBody->getReceiver(), 
-                            sendBody -> getSubject(), 
-                            sendBody -> getMessage());
-        //send\nsender\ntest\nsubject\nmessage\n
+            file->addEntry(sendBody->getSender(),
+                           sendBody->getReceiver(),
+                           sendBody->getSubject(),
+                           sendBody->getMessage());
+            // send\nsender\ntest\nsubject\nmessage\n
 
             // file ->printFile();
         }
-        else if (strcmp(clientData, "list\n") == 0)
+        else if (requestList[0] == "list" || requestList[0] == "LIST")
         {
+            cout << "List start" << endl;
+            ListBody *listBody = new ListBody(requestList[1]);
+            File *file = new File(listBody->getUsername());
+            std::vector<vector<string>> content = file->getContent();
+            string sendToClient = "";
+            for (int i = 0; i < file->getMessageCount(); i++)
+            {
+                sendToClient = sendToClient + content[i][3] + "\n";
+            }
+            cout << sendToClient << endl;
+            if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
+            {
+                perror("send answer failed");
+                return NULL;
+            }
             // strcpy(buffer, request_list());
         }
         else if (strcmp(clientData, "read\n") == 0)
