@@ -238,7 +238,6 @@ void *clientCommunication(void *data)
                             sendBody->getMessage());
             // file->openFile();
             // file->rewriteFile();
-=======
             file->addEntry(sendBody->getSender(),
                            sendBody->getReceiver(),
                            sendBody->getSubject(),
@@ -246,7 +245,6 @@ void *clientCommunication(void *data)
             // send\nsender\ntest\nsubject\nmessage\n
 
             // file ->printFile();
->>>>>>> 8a92bbf90b7ab3684579de7af39468d6f2874f95
         }
         else if (requestList[0] == "list" || requestList[0] == "LIST")
         {
