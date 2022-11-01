@@ -231,13 +231,7 @@ void *clientCommunication(void *data)
             SendBody *sendBody = new SendBody(requestList[1], requestList[2], requestList[3], requestList[4]);
             File *file = new File(sendBody->getReceiver() + ".csv");
             file->openFile();
-<<<<<<< HEAD
-            file->addEntry( sendBody->getSender(), 
-                            sendBody->getReceiver(), 
-                            sendBody->getSubject(), 
-                            sendBody->getMessage());
-            // file->openFile();
-            // file->rewriteFile();
+
             file->addEntry(sendBody->getSender(),
                            sendBody->getReceiver(),
                            sendBody->getSubject(),
