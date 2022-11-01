@@ -151,11 +151,14 @@ int main(int argc, char **argv)
          {
             buffer[size] = '\0';
             printf("<< %s\n", buffer); // ignore error
+/*
             if (strcmp("OK", buffer) != 0)
             {
                fprintf(stderr, "<< Server error occured, abort\n");
                break;
             }
+
+*/
          }
       }
    } while (!isQuit);
