@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h> 
+#include <string.h>
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -18,7 +18,6 @@ int main(int argc, char **argv)
 {
    int create_socket;
    char buffer[BUF];
-   char clientData[BUF];
    struct sockaddr_in address;
    int size;
    int isQuit;
@@ -89,7 +88,7 @@ int main(int argc, char **argv)
    do
    {
       printf(">> ");
-      if (fgets(clientData, BUF, stdin) != NULL)
+      if (fgets(buffer, BUF, stdin) != NULL)
       {
          int size = strlen(buffer);
          // remove new-line signs from string at the end
@@ -160,8 +159,6 @@ int main(int argc, char **argv)
          }
       }
    } while (!isQuit);
-
-   
 
    ////////////////////////////////////////////////////////////////////////////
    // CLOSES THE DESCRIPTOR
