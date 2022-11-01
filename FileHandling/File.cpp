@@ -96,9 +96,9 @@ public:
         file.close();
     }
 
-    void deleteEnry(int index)
+    void deleteEntry(int index)
     {
-        cout << "Deleted Message: " << this->content.at(index).at(0) << endl;
+        cout << "Deleted Message: " << this->content.at(index).at(3) << endl;
         content.erase(this->content.begin() + index);
         rewriteFile();
         file.close();

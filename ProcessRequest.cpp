@@ -1,8 +1,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "Request.cpp"
-
 class ProcessRequest
 {
 

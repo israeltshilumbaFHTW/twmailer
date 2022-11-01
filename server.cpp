@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
-#include "request.cpp"
 #include "FileHandling/File.cpp"
 #include "ProcessRequest.cpp"
 #include "WriteFile.cpp"
@@ -234,11 +233,10 @@ void *clientCommunication(void *data)
             file->openFile();
             file->addEntry( sendBody->getSender(), 
                             sendBody->getReceiver(), 
-                            sendBody -> getSubject(), 
-                            sendBody -> getMessage());
-        //send\nsender\ntest\nsubject\nmessage\n
-
-            // file ->printFile();
+                            sendBody->getSubject(), 
+                            sendBody->getMessage());
+            // file->openFile();
+            // file->rewriteFile();
         }
         else if (strcmp(clientData, "list\n") == 0)
         {
@@ -248,9 +246,13 @@ void *clientCommunication(void *data)
         {
             // strcpy(buffer, request_read_or_del("READ"));
         }
-        else if (strcmp(clientData, "del\n") == 0)
+        else if (requestList[0] == "del" || requestList[0] == "DEL")
         {
-            // strcpy(buffer, request_read_or_del("DEL"));
+            // File *file = new File(requestList[1] + ".csv");
+            // file->openFile();
+            // file->deleteEntry(stoi(requestList[2]));
+            // file->openFile();
+            // file->rewriteFile();
         }
         else if (strcmp(clientData, "quit\n") == 0)
         {
