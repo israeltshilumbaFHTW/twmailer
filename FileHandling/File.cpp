@@ -32,7 +32,7 @@ public:
         return this->content;
     }
 
-    void openFile()
+    void updateFileVector() //gibt Daten aus dem File in einen 2D Vector
     {
         string line, word;
         int numberOfLines = 0;
@@ -67,13 +67,16 @@ public:
     {
         return this->messageCount;
     }
-    void addEntry(string sender, string receiver, string subject, string message)
+
+    void addEntry(string sender, string receiver, string subject, string message) //appends an entry
     {
+        updateFileVector();
         file.open(this->pathname, std::ios::app);
         file << sender << ",";
         file << receiver << ",";
         file << subject << ",";
         file << message << "\n";
+        file << this->messageCount << "\n";
         file.close();
     }
 
@@ -102,10 +105,10 @@ public:
         content.erase(this->content.begin() + index);
         rewriteFile();
         file.close();
-        openFile();
+        updateFileVector();
     }
 
-    void rewriteFile()
+    void rewriteFile() //file bekommt Vector Einträge, falls sich etwas geändert hat -> delete zum Beispiel
     { // nür für die Nachrichten Tabelle
         file.open(this->pathname, std::ios::out);
         for (int i = 0; i < (int)this->content.size(); i++)
