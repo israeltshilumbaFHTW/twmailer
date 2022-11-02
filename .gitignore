@@ -1,0 +1,6 @@
+#ignore vscode stuff
+.idea
+.vscode
+
+compiledObject/server
+compiledObject/client

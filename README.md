@@ -1,7 +1,11 @@
 Client zu Server Verbindung funktioniert!
 SEND funktioniert!
 LIST begonnen aber nicht fertig geworden!
+<<<<<<< HEAD
 DEL funktioniert 
+=======
+DELETE funktioniert
+>>>>>>> home
 READ nicht implementiert!
 
 USAGE: 
