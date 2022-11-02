@@ -13,7 +13,6 @@
 #include "RequestBody/MessageModel.cpp"
 #include "RequestBody/ListBody.cpp"
 
-
 #define BUF 1024
 #define PORT 6543
 
@@ -222,36 +221,43 @@ void *clientCommunication(void *data)
 
         std::cout << "DEBUG: " << requestList[0] << std::endl;
 
-
-
         if (requestList[0] == "send" || requestList[0] == "SEND")
         {
             std::cout << "Send start" << std::endl;
             File *file = new File("test.csv");
-            //File *file = new File(requestList[2] + ".csv");
+            // File *file = new File(requestList[2] + ".csv");
             file->updateFileVector();
 
             MessageModel *sendBody = new MessageModel(requestList[1], requestList[2], requestList[3], requestList[4], file->getMessageCount());
             file->addEntry(sendBody->getSender(), sendBody->getReceiver(), sendBody->getSubject(), sendBody->getMessage());
             // send\nsender\ntest\nsubject\nmessage\n.
-            file ->printFile();
+            file->printFile();
 
             delete (sendBody);
             delete (file);
+            string debug = "This is a relatively long message";
+            send(*current_socket, debug.c_str(), strlen(debug.c_str()), 0);
         }
 
         else if (requestList[0] == "list" || requestList[0] == "LIST")
         {
             cout << "List start" << endl;
             ListBody *listBody = new ListBody(requestList[1]);
-            File *file = new File(listBody->getUsername());
-            std::vector<MessageModel*> content = file->getContent();
-            string sendToClient = "";
+            File *file = new File(listBody->getUsername() + ".csv");
+            file -> updateFileVector();
+
+            std::vector<MessageModel *> content = file->getContent();
+            string sendToClient = "\n";
+
+            cout << "DEBUG " << file ->getMessageCount();
             for (int i = 0; i < file->getMessageCount(); i++)
             {
-                sendToClient = sendToClient + content[i] ->getMessage() + "\n";
+                cout << "reach";
+                sendToClient = sendToClient + content[i]->getSubject() + ">>" + " " + content[i]->getSender() + "\n";
             }
-            cout << sendToClient << endl;
+
+            cout << "MESSAGE LIST" << sendToClient << endl;
+
             if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
             {
                 perror("send answer failed");
@@ -267,7 +273,7 @@ void *clientCommunication(void *data)
         {
             File *file = new File(requestList[1] + ".csv");
             file->deleteEntry(stoi(requestList[2]));
-            delete(file);
+            delete (file);
         }
         else if (strcmp(clientData, "quit\n") == 0)
         {
