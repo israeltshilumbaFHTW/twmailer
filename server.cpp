@@ -10,8 +10,9 @@
 #include "FileHandling/File.cpp"
 #include "ProcessRequest.cpp"
 #include "WriteFile.cpp"
-#include "RequestBody/SendBody.cpp"
+#include "RequestBody/MessageModel.cpp"
 #include "RequestBody/ListBody.cpp"
+
 
 #define BUF 1024
 #define PORT 6543
@@ -219,37 +220,36 @@ void *clientCommunication(void *data)
         parser->readRequest();
         std::vector<string> requestList = parser->getRequest();
 
-        // printf("Enter command: ");
-        // fflush(stdout);
-        // fgets(clientData, BUF, stdin);
-
-        //
         std::cout << "DEBUG: " << requestList[0] << std::endl;
+
+
+
         if (requestList[0] == "send" || requestList[0] == "SEND")
         {
             std::cout << "Send start" << std::endl;
-            SendBody *sendBody = new SendBody(requestList[1], requestList[2], requestList[3], requestList[4]);
-            File *file = new File(sendBody->getReceiver() + ".csv");
-            file->openFile();
+            File *file = new File("test.csv");
+            //File *file = new File(requestList[2] + ".csv");
+            file->updateFileVector();
 
-            file->addEntry(sendBody->getSender(),
-                           sendBody->getReceiver(),
-                           sendBody->getSubject(),
-                           sendBody->getMessage());
-            // send\nsender\ntest\nsubject\nmessage\n
+            MessageModel *sendBody = new MessageModel(requestList[1], requestList[2], requestList[3], requestList[4], file->getMessageCount());
+            file->addEntry(sendBody->getSender(), sendBody->getReceiver(), sendBody->getSubject(), sendBody->getMessage());
+            // send\nsender\ntest\nsubject\nmessage\n.
+            file ->printFile();
 
-            // file ->printFile();
+            delete (sendBody);
+            delete (file);
         }
+
         else if (requestList[0] == "list" || requestList[0] == "LIST")
         {
             cout << "List start" << endl;
             ListBody *listBody = new ListBody(requestList[1]);
             File *file = new File(listBody->getUsername());
-            std::vector<vector<string>> content = file->getContent();
+            std::vector<MessageModel*> content = file->getContent();
             string sendToClient = "";
             for (int i = 0; i < file->getMessageCount(); i++)
             {
-                sendToClient = sendToClient + content[i][3] + "\n";
+                sendToClient = sendToClient + content[i] ->getMessage() + "\n";
             }
             cout << sendToClient << endl;
             if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
@@ -265,11 +265,9 @@ void *clientCommunication(void *data)
         }
         else if (requestList[0] == "del" || requestList[0] == "DEL")
         {
-            // File *file = new File(requestList[1] + ".csv");
-            // file->openFile();
-            // file->deleteEntry(stoi(requestList[2]));
-            // file->openFile();
-            // file->rewriteFile();
+            File *file = new File(requestList[1] + ".csv");
+            file->deleteEntry(stoi(requestList[2]));
+            delete(file);
         }
         else if (strcmp(clientData, "quit\n") == 0)
         {

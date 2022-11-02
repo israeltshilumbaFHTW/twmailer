@@ -3,11 +3,14 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include "../RequestBody/MessageModel.cpp"
+
+#pragma once
 
 using namespace std;
 
-
 #define COLUMN 5
+#define NUMBEROFROWS 5
 
 class File
 {
@@ -17,26 +20,31 @@ private:
     string filename;
     string pathname;
     vector<string> row;
-    vector<vector<string>> content;
+    vector<MessageModel *> content;
     fstream file;
 
 public:
     File(string filename)
     {
+        cout << "DEBUG: File constructor" << endl;
         this->messageCount = this->content.size();
         this->filename = filename;
         this->pathname = "mail-spool-directory/" + this->filename;
     }
 
-    vector<vector<string>> getContent() {
+    vector<MessageModel *> getContent()
+    {
         return this->content;
     }
 
-    void updateFileVector() //gibt Daten aus dem File in einen 2D Vector
+    void updateFileVector() // gibt Daten aus dem File in einen 2D Vector
     {
         string line, word;
         int numberOfLines = 0;
 
+        string sender, receiver, subject, message, id;
+
+        cout << "DEBUG: " << pathname << endl;
         file.open(this->pathname, ios::in);
 
         if (file.is_open())
@@ -46,11 +54,13 @@ public:
                 row.clear();
                 stringstream str(line);
 
-                while (getline(str, word, ','))
-                {
-                    row.push_back(word);
-                }
-                content.push_back(row);
+                getline(str, sender, ',');
+                getline(str, receiver, ',');
+                getline(str, subject, ',');
+                getline(str, message, ',');
+
+                MessageModel *messageModel = new MessageModel(sender, receiver, subject, message, numberOfLines);
+                content.push_back(messageModel);
                 numberOfLines++;
             }
         }
@@ -68,16 +78,16 @@ public:
         return this->messageCount;
     }
 
-    void addEntry(string sender, string receiver, string subject, string message) //appends an entry
+    void addEntry(string sender, string receiver, string subject, string message) // appends an entry
     {
-        updateFileVector();
         file.open(this->pathname, std::ios::app);
         file << sender << ",";
         file << receiver << ",";
         file << subject << ",";
-        file << message << "\n";
+        file << message << ",";
         file << this->messageCount << "\n";
         file.close();
+        updateFileVector();
     }
 
     void addDummyData()
@@ -101,30 +111,23 @@ public:
 
     void deleteEntry(int index)
     {
-        cout << "Deleted Message: " << this->content.at(index).at(3) << endl;
+        updateFileVector();
+        cout << "Deleted Message: " << this->content[index]->getSubject() << endl;
         content.erase(this->content.begin() + index);
         rewriteFile();
         file.close();
-        updateFileVector();
     }
 
-    void rewriteFile() //file bekommt Vector Einträge, falls sich etwas geändert hat -> delete zum Beispiel
-    { // nür für die Nachrichten Tabelle
+    void rewriteFile() // file bekommt Vector Einträge, falls sich etwas geändert hat -> delete zum Beispiel
+    {                  // nür für die Nachrichten Tabelle
         file.open(this->pathname, std::ios::out);
         for (int i = 0; i < (int)this->content.size(); i++)
         {
-            for (int j = 0; j < (int)this->content.at(i).size(); j++)
-            {
-                if ((int)this->content.at(i).size() - j == 1)
-                { // letzter Eintrag bekommt kein Komma
-                    file << i;
-                }
-                else
-                {
-                    //cout << "DEBUG \n";
-                    file << this->content.at(i).at(j) << ",";
-                }
-            }
+            file << content[i]->getSender() << ",";
+            file << content[i]->getSender() << ",";
+            file << content[i]->getSubject() << ",";
+            file << content[i]->getMessage() << ",";
+            file << content[i]->getId();
             file << "\n";
         }
         file.close();
@@ -132,13 +135,15 @@ public:
 
     void printFile()
     {
+        updateFileVector();
         cout << "Content SIZE: " << this->messageCount << endl;
         for (int i = 0; i < this->messageCount; i++)
         {
-            for (int j = 0; j < COLUMN; j++)
-            {
-                cout << content[i][j] << " ";
-            }
+            cout << this->content[i]->getSender() << ",";
+            cout << this->content[i]->getReceiver() << ",";
+            cout << this->content[i]->getSubject() << ",";
+            cout << this->content[i]->getMessage() << ",";
+            cout << this->content[i]->getId() << ",";
             cout << "\n";
         }
     }

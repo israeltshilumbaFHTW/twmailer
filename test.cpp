@@ -1,17 +1,13 @@
 #include <iostream>
-#include "ReadFile.cpp"
-#include "WriteFile.cpp"
+#include "FileHandling/File.cpp"
+#include "RequestBody/MessageModel.cpp"
+
 //test
 
 int main() {
-    ReadFile *file = new ReadFile("test.csv");
-    file -> openFile();
-    //file ->printFile();
 
-    WriteFile *writefile = new WriteFile("test.csv");
-    //writefile -> addEntry("4", "add", "gernot");
-
-    
+    File *file = new File("test.csv");
+    file->deleteEntry(2);
 
     return EXIT_SUCCESS;
 }
