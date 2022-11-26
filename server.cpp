@@ -1,17 +1,4 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include "FileHandling/File.cpp"
-#include "ProcessRequest.cpp"
-#include "WriteFile.cpp"
-#include "RequestBody/MessageModel.cpp"
-#include "RequestBody/ListBody.cpp"
+#include "header.h"
 
 #define BUF 1024
 #define PORT 6543
@@ -136,11 +123,25 @@ int main(void)
         /////////////////////////////////////////////////////////////////////////
         // START CLIENT
         // ignore printf error handling
-        printf("Client connected from %s:%d...\n",
-               inet_ntoa(cliaddress.sin_addr),
-               ntohs(cliaddress.sin_port));
-        clientCommunication(&new_socket); // returnValue can be ignored
-        new_socket = -1;
+        pid_t cpid, pid;
+        pid = getpid();
+
+        if((pid = fork() == 0)) {
+
+            printf("Client connected from %s:%d...\n",
+                inet_ntoa(cliaddress.sin_addr),
+                ntohs(cliaddress.sin_port));
+            clientCommunication(&new_socket); // returnValue can be ignored
+            new_socket = -1;
+        } else {
+            cout << "Server still running... Server ID: " << pid << endl;
+        }
+
+        while((cpid = waitpid(-1, NULL, WNOHANG))) {
+            if((cpid == -1) && (errno != EINTR)) {
+                break;
+            }
+        }
     }
 
     // frees the descriptor
