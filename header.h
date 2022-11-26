@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
+#include <sstream>
 #include "FileHandling/File.cpp"
 #include "ProcessRequest.cpp"
 #include "WriteFile.cpp"

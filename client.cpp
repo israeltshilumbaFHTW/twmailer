@@ -1,12 +1,4 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-
+#include "header.h"
 ///////////////////////////////////////////////////////////////////////////////
 
 #define BUF 1024
@@ -87,59 +79,134 @@ int main(int argc, char **argv)
 
    do
    {
-      printf(">> ");
-      if (fgets(buffer, BUF, stdin) != NULL)
+      //char message[BUF];
+      int userRequestType;
+      string sender;
+      std::cout << "0. Login 1.Send 2.Read 3.Delete 4.Quit" << std::endl;
+      std::cin >> userRequestType;
+      std::cout << "Username:" << std::endl;
+      std::cin >> sender;
+      
+      switch (userRequestType)
       {
-         int size = strlen(buffer);
-         // remove new-line signs from string at the end
-         if (buffer[size - 2] == '\r' && buffer[size - 1] == '\n')
-         {
-            size -= 2;
-            buffer[size] = 0;
-         }
-         else if (buffer[size - 1] == '\n')
-         {
-            --size;
-            buffer[size] = 0;
-         }
-         isQuit = strcmp(buffer, "quit") == 0;
+      case 0: {
 
-         //////////////////////////////////////////////////////////////////////
-         // SEND DATA
-         // https://man7.org/linux/man-pages/man2/send.2.html
-         // send will fail if connection is closed, but does not set
-         // the error of send, but still the count of bytes sent
-         if ((send(create_socket, buffer, size, 0)) == -1) 
-         {
-            perror("send error");
-            break;
-         }
+         string login = "login\n";
+         cout << "Password: \n";
+         string password;
+         cin >> password;
 
-         size = recv(create_socket, buffer, BUF - 1, 0);
-         if (size == -1)
-         {
-            perror("recv error");
-            break;
-         }
-         else if (size == 0)
-         {
-            printf("Server closed remote socket\n"); // ignore error
-            break;
-         }
-         else
-         {
-            buffer[size] = '\0';
-            printf("<< %s\n", buffer); // ignore error
+         login = login + sender + "\n" + password + "\n.";
+         strcat(buffer, login.c_str());
+
+         break;
+      }
+
+      case 1:{
+
+         string sendMessage = "send\n";
+         std::cout << "Receiver\n";
+         string receiver;
+         cin >> receiver;
+
+         std::cout << "Subject\n";
+         string subject;
+         cin >> subject;
+
+         std::cout << "Message\n";
+         string message;
+         cin >> message;
+
+         sendMessage = sendMessage + sender + "\n" + subject + "\n" + message + "\n..";
+         strcat(buffer, sendMessage.c_str());
+         break;
+      }
+
+      case 2: {
+
+         string listMessage = "list\n";
+         listMessage = listMessage + sender + "\n.";
+         strcat(buffer, listMessage.c_str());
+         break;
+      }
+
+      case 3: {
+
+         string readMessage = "read\n";
+         string messageNumber;
+         cin >> messageNumber;
+         readMessage = readMessage + messageNumber + "\n.";
+         strcat(buffer, readMessage.c_str());
+         break;
+      }
+
+      case 4: {
+
+         string delMessage = "del\n";
+         string messageNumber;
+         cin >> messageNumber;
+         delMessage = delMessage + sender + "\n" + messageNumber + "\n.";
+         strcat(buffer, delMessage.c_str());
+         break;
+
+      }
+      case 5:
+         strcpy(buffer, "QUIT");
+         break;
+      
+      default:
+         break;
+      }
+      int size = strlen(buffer);
+
+      // remove new-line signs from string at the end
+      if (buffer[size - 2] == '\r' && buffer[size - 1] == '\n')
+      {
+         size -= 2;
+         buffer[size] = 0;
+      }
+      else if (buffer[size - 1] == '\n')
+      {
+         --size;
+         buffer[size] = 0;
+      }
+      isQuit = strcmp(buffer, "quit") == 0;
+
+      //////////////////////////////////////////////////////////////////////
+      // SEND DATA
+      // https://man7.org/linux/man-pages/man2/send.2.html
+      // send will fail if connection is closed, but does not set
+      // the error of send, but still the count of bytes sent
+      if ((send(create_socket, buffer, size, 0)) == -1) 
+      {
+         perror("send error");
+         break;
+      }
+
+      size = recv(create_socket, buffer, BUF - 1, 0);
+      if (size == -1)
+      {
+         perror("recv error");
+         break;
+      }
+      else if (size == 0)
+      {
+         printf("Server closed remote socket\n"); // ignore error
+         break;
+      }
+      else
+      {
+         buffer[size] = '\0';
+         printf("<< %s\n", buffer); // ignore error
 /*
-            if (strcmp("OK", buffer) != 0)
-            {
-               fprintf(stderr, "<< Server error occured, abort\n");
-               break;
-            }
+         if (strcmp("OK", buffer) != 0)
+         {
+            fprintf(stderr, "<< Server error occured, abort\n");
+            break;
+         }
 
 */
          }
-      }
    } while (!isQuit);
 
    ////////////////////////////////////////////////////////////////////////////

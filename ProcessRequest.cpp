@@ -37,15 +37,21 @@ public:
         string token;
         vector<string> res;
 
-        while ((pos_end = s.find(delimiter, pos_start)) != string::npos)
-        {
-            token = s.substr(pos_start, pos_end - pos_start);
-            pos_start = pos_end + delim_len;
-            res.push_back(token);
-        }
+        try {
+
+            while ((pos_end = s.find(delimiter, pos_start)) != string::npos)
+            {
+                token = s.substr(pos_start, pos_end - pos_start);
+                pos_start = pos_end + delim_len;
+                res.push_back(token);
+            }
 
         res.push_back(s.substr(pos_start));
         res.back().pop_back();
+
+        } catch (out_of_range& e) {
+            cerr << "Out of Range exception" << e.what() << endl;
+        }
 
         return res;
     }
