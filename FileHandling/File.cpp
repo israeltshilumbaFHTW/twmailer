@@ -44,9 +44,9 @@ public:
 
         string sender, receiver, subject, message, id;
 
-        cout << "DEBUG: " << pathname << endl;
-        file.open(this->pathname, ios::in);
-
+        //fstream file( /*"mail-spool-directory" +*/ this->pathname, ios::in);
+        //debug
+        fstream file(this->pathname, ios::in);
         if (file.is_open())
         {
             while (getline(file, line))
@@ -80,6 +80,7 @@ public:
 
     void addEntry(string sender, string receiver, string subject, string message) // appends an entry
     {
+        cout << "Add Entry" << endl;
         file.open(this->pathname, std::ios::app);
         file << sender << ",";
         file << receiver << ",";

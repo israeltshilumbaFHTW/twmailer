@@ -224,8 +224,8 @@ void *clientCommunication(void *data)
         if (requestList[0] == "send" || requestList[0] == "SEND")
         {
             std::cout << "Send start" << std::endl;
-            File *file = new File("test.csv");
-            // File *file = new File(requestList[2] + ".csv");
+            //File *file = new File("test.csv");
+            File *file = new File(requestList[2] + ".csv");
             file->updateFileVector();
 
             MessageModel *sendBody = new MessageModel(requestList[1], requestList[2], requestList[3], requestList[4], file->getMessageCount());
@@ -235,8 +235,8 @@ void *clientCommunication(void *data)
 
             delete (sendBody);
             delete (file);
-            string debug = "This is a relatively long message";
-            send(*current_socket, debug.c_str(), strlen(debug.c_str()), 0);
+            //string response = "OK";
+            //send(*current_socket, response.c_str(), strlen(response.c_str()), 0);
         }
 
         else if (requestList[0] == "list" || requestList[0] == "LIST")
