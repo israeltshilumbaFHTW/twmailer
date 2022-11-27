@@ -18,3 +18,6 @@
 #include "WriteFile.cpp"
 #include "RequestBody/MessageModel.cpp"
 #include "RequestBody/ListBody.cpp"
+
+#define METHOD 0
+#define RECEIVER 1 
