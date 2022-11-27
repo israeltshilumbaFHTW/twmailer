@@ -4,6 +4,7 @@
 
 #define BUF 1024
 #define PORT 6543
+#define QUIT "5"
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -240,41 +241,41 @@ void *clientCommunication(void *data)
 
         if (userInfo[0] == "login")
         {
+            if(checkBlacklisted(ipAddress))
+            {
+                std::cout << "Too many wrong concurrent password inputs, try again in 1 minute!\n"; //an client senden?
+            }
             if (checkLdapLogin(userInfo[2].c_str(), userInfo[1].c_str()) != EXIT_FAILURE)
             {
                 // const char* myPwd = userInfo[2].c_str();
                 // const char* myUsername = userInfo[1].c_str();
-                if(checkBlacklisted(ipAddress))
-                {
-                    std::cout << "Too many wrong concurrent password inputs, try again in 1 minute!\n"; //an client senden?
+                
+                loginAttempts=0;
+                string temp(userInfo[1].c_str());
+                loggedInUsername = temp; 
+                loggedIn = true;
+                //succes msg
+            }
+            else
+            {
+                loginAttempts++;
+                std::cout << loginAttempts << std::endl;
+                if(loginAttempts>=3){
+                    blackListUser(ipAddress);
                 }
-                if (checkLdapLogin(userInfo[2].c_str(), userInfo[1].c_str()) != EXIT_FAILURE)
-                {
-                    loginAttempts=0;
-                    string temp(userInfo[1].c_str());
-                    loggedInUsername = temp; 
-                    loggedIn = true;
-                    //succes msg
-                }
-                else
-                {
-                    loginAttempts++;
-                    std::cout << loginAttempts << std::endl;
-                    if(loginAttempts>=3){
-                        blackListUser(ipAddress);
-                    }
-                    //error msg
-                }
+                //error msg
             }
         }
-
-        if (userInfo[0] != "login" && loggedIn == false)
+        
+        if (loggedIn == false)
         {
-            std::cout << "You must first login to do that!\n";
-            ERROR = true;
-            ERROR_MESSAGE = "You must first login to do that!\n";
-            //send this message to client
+                std::cout << userInfo[METHOD] << std::endl;
+                // std::cout << "You must first login to do that!\n";
+                ERROR = true;
+                ERROR_MESSAGE = "You must first login to do something!\n";
+                //send this message to client
         }
+        
 
         else if (/*loggedIn ==*/ true)
         {
@@ -349,7 +350,7 @@ void *clientCommunication(void *data)
             else if (userInfo[METHOD] == "read" || userInfo[METHOD] == "READ")
             {
                 cout << "Read Request" << endl;
-                File *file = new File(USERNAME + ".csv");
+                File *file = new File(loggedInUsername + ".csv");
                 file->updateFileVector();
 
                 int targetMessageId = stoi(userInfo[1]); //
@@ -375,7 +376,7 @@ void *clientCommunication(void *data)
 
             else if (userInfo[METHOD] == "del" || userInfo[METHOD] == "DEL")
             {
-                File *file = new File(USERNAME + ".csv");
+                File *file = new File(loggedInUsername + ".csv");
                 file->deleteEntry(stoi(userInfo[1]));
                 delete (file);
             }
@@ -464,7 +465,7 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
 {
     // LDAP config
     const char *ldapUri = "ldap://ldap.technikum-wien.at:389";
-    const int ldapVersion = LDAP_VERSION2; //change to 3
+    const int ldapVersion = LDAP_VERSION3; //change to 3
 
     //set username
     char ldapBindUser[256];
