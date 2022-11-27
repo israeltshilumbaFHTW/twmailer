@@ -97,13 +97,12 @@ int main(int argc, char **argv)
       std::string sender;
       std::cout << "0. Login 1.Send 2.Read 3.Delete 4.Quit" << std::endl;
       std::cin >> userRequestType;
-      std::cout << "Username:" << std::endl;
-      std::cin >> sender;
       
       switch (userRequestType)
       {
          case 0: {
-
+            std::cout << "Username:" << std::endl;
+            std::cin >> sender;
             std::string login = "login\n";
             std::cout << "Password: \n";
             char password[256];
@@ -168,7 +167,7 @@ int main(int argc, char **argv)
 
          }
          case 5:
-            strcpy(buffer, "QUIT");
+            strcpy(buffer, "quit");
             break;
          
          default:

@@ -253,23 +253,31 @@ void *clientCommunication(void *data)
             stringstream ss;
             ss << buffer << "\n";
 
-            while (getline(ss, line))       //save msg in vector
+            while (getline(ss, line))       //save us in vector
             {
                 userInfo.push_back(line);
             }
 
-            std::cout << "This is the UserInfo: " << userInfo[0] << " " << userInfo[1] << " " << userInfo[2] << std::endl;
+            // std::cout << "This is the UserInfo: " << userInfo[0] << " " << userInfo[1] << " " << userInfo[2] << std::endl;
+
 
             if (userInfo[0] == "login")
             {
-                if (checkLdapLogin(userInfo[2].c_str(), userInfo[1].c_str()))
+                // const char* myPwd = userInfo[2].c_str();
+                // const char* myUsername = userInfo[1].c_str();
+                if (checkLdapLogin(userInfo[2].c_str(), userInfo[1].c_str()) != EXIT_FAILURE)
                 {
                     loggedIn = true;
+                    // printf("CHECK1\n");  // DEBUG
                 }
             }
-            if (loggedIn == true)
+            if (userInfo[0] != "login" && loggedIn == false)
             {
-                if (requestList[0] == "send" || requestList[0] == "SEND")
+                std::cout << "You must first login to do that!\n";
+            }
+            else if (loggedIn == true)
+            {
+                if (userInfo[0] == "send")
                 {
                     std::cout << "Send start" << std::endl;
                     //File *file = new File("test.csv");
@@ -298,7 +306,7 @@ void *clientCommunication(void *data)
                     }
                 }
 
-                else if (requestList[0] == "list" || requestList[0] == "LIST")
+                else if (userInfo[0] == "list")
                 {
                     cout << "List start" << endl;
                     ListBody *listBody = new ListBody(requestList[1]);
@@ -326,7 +334,7 @@ void *clientCommunication(void *data)
                     }
                     // strcpy(buffer, request_list());
                 }
-                else if (requestList[0] == "read" || requestList[0] == "READ")
+                else if (userInfo[0] == "read")
                 {
                     File *file = new File(requestList[1] + ".csv");
                     file->updateFileVector();
@@ -348,7 +356,7 @@ void *clientCommunication(void *data)
                         return NULL;
                     }
                 }
-                else if (requestList[0] == "del" || requestList[0] == "DEL")
+                else if (userInfo[0] == "del")
                 {
                     File *file = new File(requestList[1] + ".csv");
                     file->deleteEntry(stoi(requestList[2]));
@@ -359,15 +367,18 @@ void *clientCommunication(void *data)
                     // strcpy(buffer, buffer);
                     break;
                 }
-
-                if (send(*current_socket, "OK", 3, 0) == -1)
+            }  
+            // printf("Shall we go again?"); //DEBUG
+            // kann man das so machen hier? Werden die Daten gesendet?
+            if (send(*current_socket, "OK", 3, 0) == -1)
                 {
                     perror("send answer failed");
                     return NULL;
                 }
-            }  
         }
     } while (strcmp(buffer, "quit") != 0 && !abortRequested);
+
+    loggedIn = false;
 
     // closes/frees the descriptor if not already
     if (*current_socket != -1)

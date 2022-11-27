@@ -20,4 +20,5 @@
   13.1. Sender in SEND should automatically be set (session information after login) 
   13.2 Remove the possibility in LIST/READ/DEL to set the username manually.
   13.3. The username should automatically be set (session information after login)
+
 14. Ordnerstruktur
