@@ -2,23 +2,13 @@
 2. Auskommentierten Code löschen/regeln
 3. (Unnötige) Kommentare löschen/erstellen
 4. Passwort hashen (nicht in plain text
-5. Brauchen wir ProcessRequest Class? 
-  5.1. Vektor requestList ist einfach der Buffer oder ???
 
 6. Error Handling
-  6.1. Bug wenn was anderes als 1-4 eingegeben wird
-  6.2. strcat oder strcpy in client ???
   6.3. Generell paar Error Messages
 
-7. Mail Directory und Port/IP nicht hardgecodet (user soll angeben können)
 8. Blacklisten bei zu ofter Fehleingabe beim Passwort
-9. Send, list, read, del. implementieren
 10. PDF Dokumentation
 11. (Time Synch.)
 12. Server soll jedes mal entweder mit OK oder ERR antworten
-13. Remove the possibility to set a sender manually.
-  13.1. Sender in SEND should automatically be set (session information after login) 
-  13.2 Remove the possibility in LIST/READ/DEL to set the username manually.
-  13.3. The username should automatically be set (session information after login)
 
 14. Ordnerstruktur
