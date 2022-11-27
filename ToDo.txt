@@ -1,7 +1,7 @@
 1. Includes gescheit strukturieren
 2. Auskommentierten Code löschen/regeln
 3. (Unnötige) Kommentare löschen/erstellen
-4. Passwort hashen (nicht in plain text)
+4. Passwort hashen (nicht in plain text) //passwort in plain Text, steht in der Angabe
 5. Brauchen wir ProcessRequest Class? 
   5.1. Vektor requestList ist einfach der Buffer oder ???
 

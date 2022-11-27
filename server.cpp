@@ -9,6 +9,7 @@ int abortRequested = 0;
 int create_socket = -1;
 int new_socket = -1;
 bool REQUESTERROR = false;
+string USERNAME = "if21b088";
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -217,37 +218,9 @@ void *clientCommunication(void *data)
         buffer[size] = '\0';
         // code handling hier
         std::string buffStr = buffer;
-        // printf("Message received: %s\n", buffer); // ignore error
-                                                  //
-        //if command doesnt end with . return bad Request
-        // cout << "Buffer last char: " <<  buffer[size - 1] << endl;
-
-        //     char lastChar = buffer[size-1];
-        //     string errorMessage;
-        //     if(lastChar != '.') {
-        //         errorMessage = "Invalid Request";
-        //         send(*current_socket, errorMessage.c_str(), strlen(errorMessage.c_str()), 0);
-        //         REQUESTERROR = true;
-
-        //     }
-        /*
-        try {
-            if (strcmp((char * )buffer[size - 1], "." )) {
-                throw "Invalid Request";
-            }
-        } catch (string message) {
-            cout << message << endl;
-        }
-        */
+        cout << "Buffstr" << buffStr << endl;
         if(!REQUESTERROR) {
-
-            ProcessRequest *parser = new ProcessRequest(buffStr);
-            parser->readRequest();
-            std::vector<string> requestList = parser->getRequest();
-
-            std::cout << "DEBUG: " << requestList[0] << std::endl;
-            std::cout << "Requestlist size: " << requestList.size() << std::endl;
-
+            
             vector<string> userInfo;
             string line;
             stringstream ss;
@@ -267,71 +240,60 @@ void *clientCommunication(void *data)
                     loggedIn = true;
                 }
             }
-            if (loggedIn == true)
+
+            if (/*loggedIn == */true)
             {
-                if (requestList[0] == "send" || requestList[0] == "SEND")
+                if (userInfo[METHOD] == "send" || userInfo[METHOD] == "SEND")
                 {
                     std::cout << "Send start" << std::endl;
-                    //File *file = new File("test.csv");
-                    File *file = new File(requestList[2] + ".csv");
+
+                    //if not set, return fail message
+                    cout << "RECEIVER: " << userInfo[RECEIVER] << endl;
+                    File *file = new File(userInfo[RECEIVER] + ".csv");
                     file->updateFileVector();
 
-                    MessageModel *sendBody = new MessageModel(requestList[1], requestList[2], requestList[3], requestList[4], file->getMessageCount());
+                    MessageModel *sendBody = new MessageModel(USERNAME, userInfo[RECEIVER], userInfo[2], userInfo[3], file->getMessageCount());
                     file->addEntry(sendBody->getSender(), sendBody->getReceiver(), sendBody->getSubject(), sendBody->getMessage());
-                    // send\nsender\ntest\nsubject\nmessage\n.
+                    cout << "New User Entries" << endl;
                     file->printFile();
 
                     delete (sendBody);
                     delete (file);
-                    //string response = "OK";
-                    //send(*current_socket, response.c_str(), strlen(response.c_str()), 0);
-                    string server_time;
-                    time_t seconds; 
-                    seconds  = time(NULL);
-
-                    stringstream ss;
-                    ss << seconds;
-                    server_time = ss.str();
-
-                    if(send(*current_socket, server_time.c_str(), strlen(server_time.c_str()), 0) == -1) {
-                        perror("couldnt send the time");
-                    }
                 }
 
-                else if (requestList[0] == "list" || requestList[0] == "LIST")
+                else if (userInfo[METHOD] == "list" || userInfo[METHOD] == "LIST")
                 {
                     cout << "List start" << endl;
-                    ListBody *listBody = new ListBody(requestList[1]);
-                    File *file = new File(listBody->getUsername() + ".csv");
+
+                    File *file = new File(USERNAME + ".csv");
                     file->updateFileVector();
 
                     std::vector<MessageModel *> content = file->getContent();
 
-                    string sendToClient = "\nMessage Count: " + file->getMessageCount();
+                    string sendToClient = "Count: " + content.size();
                     sendToClient = sendToClient + "\n";
 
-                    cout << "DEBUG " << file->getMessageCount();
+                    cout << "Message COUNT " << file->getMessageCount() << endl;
                     for (int i = 0; i < file->getMessageCount(); i++)
                     {
-                        cout << "reach";
                         sendToClient = sendToClient + content[i]->getSubject() + " >> " + content[i]->getSender() + "\n";
                     }
 
-                    cout << "MESSAGE LIST" << sendToClient << endl;
+                    cout << "MESSAGE LIST: " << sendToClient << endl;
 
                     if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
                     {
                         perror("send answer failed");
                         return NULL;
                     }
-                    // strcpy(buffer, request_list());
                 }
-                else if (requestList[0] == "read" || requestList[0] == "READ")
+
+                else if (userInfo[METHOD] == "read" || userInfo[METHOD] == "READ")
                 {
-                    File *file = new File(requestList[1] + ".csv");
+                    File *file = new File(USERNAME + ".csv");
                     file->updateFileVector();
 
-                    int targetMessageId = stoi(requestList[2]);
+                    int targetMessageId = stoi(userInfo[1]); //
 
                     std::vector<MessageModel *> content = file->getContent();
 
@@ -348,15 +310,14 @@ void *clientCommunication(void *data)
                         return NULL;
                     }
                 }
-                else if (requestList[0] == "del" || requestList[0] == "DEL")
+                else if (userInfo[0] == "del" || userInfo[0] == "DEL")
                 {
-                    File *file = new File(requestList[1] + ".csv");
-                    file->deleteEntry(stoi(requestList[2]));
+                    File *file = new File(USERNAME + ".csv");
+                    file->deleteEntry(stoi(userInfo[1]));
                     delete (file);
                 }
                 else if (strcmp(clientData, "quit\n") == 0)
                 {
-                    // strcpy(buffer, buffer);
                     break;
                 }
 
@@ -433,7 +394,7 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
 {
     // LDAP config
     const char *ldapUri = "ldap://ldap.technikum-wien.at:389";
-    const int ldapVersion = LDAP_VERSION3;
+    const int ldapVersion = LDAP_VERSION2;
 
     //set username
     char ldapBindUser[256];

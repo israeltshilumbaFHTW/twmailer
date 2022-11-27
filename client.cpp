@@ -95,29 +95,33 @@ int main(int argc, char **argv)
       //char message[BUF];
       int userRequestType;
       std::string sender;
-      std::cout << "0. Login 1.Send 2.Read 3.Delete 4.Quit" << std::endl;
+      std::cout << "0. Login 1.Send 2.List 3.Read 4.Delete 5.Quit" << std::endl;
       std::cin >> userRequestType;
-      std::cout << "Username:" << std::endl;
-      std::cin >> sender;
       
       switch (userRequestType)
       {
          case 0: {
+
+            std::cout << "Username:" << std::endl;
+            std::cin >> sender;
 
             std::string login = "login\n";
             std::cout << "Password: \n";
             char password[256];
             //strcpy(password, getPass());
             std::cin >> password;
+
             login = login + sender + "\n" + password + "\n.";
             strcpy(buffer, login.c_str());
 
             break;
          }
 
-         case 1:{
+         case 1:{ //SEND
 
-            std::string sendMessage = "send\n";
+            std::string sendMessage;
+
+            std::string method = "send\n";
             std::cout << "Receiver\n";
             std::string receiver;
             std::cin >> receiver;
@@ -130,63 +134,59 @@ int main(int argc, char **argv)
             std::string message;
             std::cin >> message;
 
-            sendMessage = sendMessage + sender + "\n" + subject + "\n" + message + "\n..";
-            //strcpy ???
-            strcat(buffer, sendMessage.c_str());
+            sendMessage = method + receiver + "\n" + subject + "\n" + message + "\n..";
+            strcpy(buffer, sendMessage.c_str());
             break;
          }
 
-         case 2: {
+         case 2: { //LIST
 
-            std::string listMessage = "list\n";
-            listMessage = listMessage + sender + "\n.";
-            //strcpy ???
-            strcat(buffer, listMessage.c_str());
+            std::string listMessage;
+            std::string method = "list\n";
+            listMessage = method + sender + "\n.";
+
+            strcpy(buffer, listMessage.c_str());
             break;
          }
 
-         case 3: {
+         case 3: { //READ
 
-            std::string readMessage = "read\n";
+            std::string readMessage;
+            std::string method = "read\n";
+
             std::string messageNumber;
             std::cin >> messageNumber;
-            readMessage = readMessage + messageNumber + "\n.";
-            //strcpy ???
-            strcat(buffer, readMessage.c_str());
+
+            readMessage = method + messageNumber + "\n.";
+
+            strcpy(buffer, readMessage.c_str());
             break;
          }
 
-         case 4: {
+         case 4: { //DEL
 
-            std::string delMessage = "del\n";
+            std::string delMessage;
+            std::string method = "del\n";
+
             std::string messageNumber;
             std::cin >> messageNumber;
-            delMessage = delMessage + sender + "\n" + messageNumber + "\n.";
-            //strcpy ???
+
+            delMessage = method + messageNumber + "\n.";
             strcat(buffer, delMessage.c_str());
             break;
 
          }
-         case 5:
+
+         case 5: //QUIT
             strcpy(buffer, "QUIT");
             break;
          
          default:
             break;
       }
+
       int size = strlen(buffer);
 
-      // remove new-line signs from string at the end
-      // if (buffer[size - 2] == '\r' && buffer[size - 1] == '\n')
-      // {
-      //    size -= 2;
-      //    buffer[size] = 0;
-      // }
-      // else if (buffer[size - 1] == '\n')
-      // {
-      //    --size;
-      //    buffer[size] = 0;
-      // }
       isQuit = strcmp(buffer, "quit") == 0;
 
       //////////////////////////////////////////////////////////////////////
