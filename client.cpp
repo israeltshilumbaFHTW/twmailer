@@ -181,6 +181,7 @@ int main(int argc, char **argv)
                std::string method = "del\n";
 
                std::string messageNumber;
+               std::cout << "Type the index of the message you want to delete\n";
                std::cin >> messageNumber;
 
                delMessage = method + messageNumber + "\n";

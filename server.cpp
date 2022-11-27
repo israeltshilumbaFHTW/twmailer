@@ -1,4 +1,6 @@
 #include "header.h"
+#include <map>
+#include <iterator>
 
 #define BUF 1024
 #define PORT 6543
@@ -9,16 +11,16 @@ int abortRequested = 0;
 int create_socket = -1;
 int new_socket = -1;
 bool REQUESTERROR = false;
-
-//HARDCODED
-string USERNAME = "if21b088";
-
 bool ERROR = false;
+map<string, time_t> blackList;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void *clientCommunication(void *data);
 void signalHandler(int sig);
 int checkLdapLogin(const char ldapPwd[], const char ldapUser[]);
+bool checkBlacklisted(string ipAddress);
+void blackListUser(string ipAddress);
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -178,7 +180,18 @@ void *clientCommunication(void *data)
     char buffer[BUF];
     int size;
     int *current_socket = (int *)data;
+    string loggedInUsername;
     bool loggedIn = false;
+    int loginAttempts = 0;
+    string ipAddress;
+
+    struct sockaddr_in clientAddress;
+    socklen_t len = sizeof(clientAddress);
+
+    if (getpeername(*current_socket, (struct sockaddr*)&clientAddress, &len) == 0)
+    {
+        ipAddress = inet_ntoa(clientAddress.sin_addr);
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // SEND welcome message
@@ -248,10 +261,26 @@ void *clientCommunication(void *data)
             {
                 // const char* myPwd = userInfo[2].c_str();
                 // const char* myUsername = userInfo[1].c_str();
+                if(checkBlacklisted(ipAddress))
+                {
+                    std::cout << "Too many wrong concurrent password inputs, try again in 1 minute!\n"; //an client senden?
+                }
                 if (checkLdapLogin(userInfo[2].c_str(), userInfo[1].c_str()) != EXIT_FAILURE)
                 {
+                    loginAttempts=0;
+                    string temp(userInfo[1].c_str());
+                    loggedInUsername = temp; 
                     loggedIn = true;
-                    // printf("CHECK1\n");  // DEBUG
+                    //succes msg
+                }
+                else
+                {
+                    loginAttempts++;
+                    std::cout << loginAttempts << std::endl;
+                    if(loginAttempts>=3){
+                        blackListUser(ipAddress);
+                    }
+                    //error msg
                 }
             }
 
@@ -259,10 +288,9 @@ void *clientCommunication(void *data)
             {
                 std::cout << "You must first login to do that!\n";
             }
-
             else if (loggedIn == true)
             {
-                if (userInfo[METHOD] == "send" || userInfo[METHOD] == "SEND")
+                if (userInfo[METHOD] == "send" || userInfo[METHOD] == "SEND") //brauchen wir CAPS wir geben eh nur 1-5 an
                 {
                     std::cout << "Send start" << std::endl;
 
@@ -271,7 +299,7 @@ void *clientCommunication(void *data)
                     File *file = new File(userInfo[RECEIVER] + ".csv");
                     file->updateFileVector();
 
-                    MessageModel *sendBody = new MessageModel(USERNAME, userInfo[RECEIVER], userInfo[2], userInfo[3], file->getMessageCount());
+                    MessageModel *sendBody = new MessageModel(loggedInUsername, userInfo[RECEIVER], userInfo[2], userInfo[3], file->getMessageCount());
                     file->addEntry(sendBody->getSender(), sendBody->getReceiver(), sendBody->getSubject(), sendBody->getMessage());
                     cout << "New User Entries" << endl;
                     file->printFile();
@@ -284,7 +312,7 @@ void *clientCommunication(void *data)
                 {
                     cout << "List start" << endl;
 
-                    File *file = new File(USERNAME + ".csv");
+                    File *file = new File(loggedInUsername + ".csv");
                     file->updateFileVector();
 
                     std::vector<MessageModel *> content = file->getContent();
@@ -320,7 +348,7 @@ void *clientCommunication(void *data)
                 else if (userInfo[METHOD] == "read" || userInfo[METHOD] == "READ")
                 {
                     cout << "Read Request" << endl;
-                    File *file = new File(USERNAME + ".csv");
+                    File *file = new File(loggedInUsername + ".csv");
                     file->updateFileVector();
 
                     int targetMessageId = stoi(userInfo[1]); //
@@ -343,7 +371,7 @@ void *clientCommunication(void *data)
 
                 else if (userInfo[METHOD] == "del" || userInfo[METHOD] == "DEL")
                 {
-                    File *file = new File(USERNAME + ".csv");
+                    File *file = new File(loggedInUsername + ".csv");
                     file->deleteEntry(stoi(userInfo[1]));
                     delete (file);
                 }
@@ -351,8 +379,6 @@ void *clientCommunication(void *data)
                 {
                     break;
                 }
-
-
 
             }  
             if (ERROR) 
@@ -539,3 +565,29 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
     return EXIT_SUCCESS;
 }
 
+bool checkBlacklisted(string ipAddress)
+{
+    auto it = blackList.find(ipAddress);
+    if (it == blackList.end()) 
+    {  
+        return false;
+    } 
+
+    time_t timeStampBlacklist = it->second;
+
+    time_t currentTime = time(nullptr);
+
+    if(currentTime-timeStampBlacklist<60)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void blackListUser(string ipAddress)
+{
+    time_t currTime = time(nullptr);
+    cout << currTime << " seconds since the Timeout\n";
+    blackList.insert(pair<string, time_t>(ipAddress, currTime));
+}
