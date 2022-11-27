@@ -16,6 +16,7 @@ bool ERROR = false;
 map<string, time_t> blackList;
 
 string ERROR_MESSAGE = "internal Server error";
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void *clientCommunication(void *data);
@@ -45,7 +46,6 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // CREATE A SOCKET
     if ((create_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
@@ -53,7 +53,6 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // SET SOCKET OPTIONS
     if (setsockopt(create_socket,
                    SOL_SOCKET,
@@ -75,14 +74,12 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // INIT ADDRESS
     memset(&address, 0, sizeof(address));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
 
-    ////////////////////////////////////////////////////////////////////////////
     // ASSIGN AN ADDRESS WITH PORT TO SOCKET
     if (bind(create_socket, (struct sockaddr *)&address, sizeof(address)) == -1)
     {
@@ -90,7 +87,6 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // ALLOW CONNECTION ESTABLISHING
     // Socket, Backlog (= count of waiting connections allowed)
     if (listen(create_socket, 5) == -1)
@@ -119,7 +115,6 @@ int main(int argc, char** argv)
             break;
         }
 
-        /////////////////////////////////////////////////////////////////////////
         // START CLIENT
         // ignore printf error handling
         pid_t cpid, pid;
@@ -137,7 +132,6 @@ int main(int argc, char** argv)
             cout << "Server still running... Server ID: " << pid << endl;
         }
 
-        // BRAUCHEN WIR DAS?
         //prevent zombies
         while((cpid = waitpid(-1, NULL, WNOHANG))) {
             if((cpid == -1) && (errno != EINTR)) {
@@ -181,7 +175,6 @@ void *clientCommunication(void *data)
         ipAddress = inet_ntoa(clientAddress.sin_addr);
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // SEND welcome message
     strcpy(buffer, "Welcome to myserver!\r\nPlease enter your commands...\r\n");
     if (send(*current_socket, buffer, strlen(buffer), 0) == -1)
@@ -192,7 +185,6 @@ void *clientCommunication(void *data)
 
     do
     {
-        /////////////////////////////////////////////////////////////////////////
         // RECEIVE
         size = recv(*current_socket, buffer, BUF - 1, 0);
         if (size == -1)
@@ -249,13 +241,20 @@ void *clientCommunication(void *data)
                 string temp(userInfo[1].c_str());
                 loggedInUsername = temp; 
                 loggedIn = true;
-                //succes msg ?
             }
             else
             {
                 loginAttempts++;
                 if(loginAttempts>=3){
-                    blackListUser(ipAddress);
+                    // blackListUser(ipAddress);    //doesn't work like intended so sleep() it is
+                    ERROR = true;
+                    ERROR_MESSAGE = "You have to wait for 60 seconds!\n";
+                    if (send(*current_socket, ERROR_MESSAGE.c_str(), strlen(ERROR_MESSAGE.c_str()), 0) == -1)
+                    {
+                        perror("send answer failed");
+                        return NULL;
+                    }
+                    sleep(60);
                 }
                 std::cout << loginAttempts << std::endl; //DEBUG
                 ERROR = true;
@@ -336,10 +335,7 @@ void *clientCommunication(void *data)
                 int targetMessageId = stoi(userInfo[1]); //
 
                 //check if message id exists
-
                 std::vector<MessageModel *> content = file->getContent();
-
-                // send
 
                 string sendToClient;
                 sendToClient = "\nFrom: " + content[targetMessageId]->getSender() +
@@ -383,6 +379,7 @@ void *clientCommunication(void *data)
         }
         ERROR = false;
         ERROR_MESSAGE = "";
+
     } while (strcmp(buffer, "quit") != 0 && !abortRequested);
 
     loggedIn = false;
@@ -447,7 +444,7 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
 {
     // LDAP config
     const char *ldapUri = "ldap://ldap.technikum-wien.at:389";
-    const int ldapVersion = LDAP_VERSION3; //change to 3
+    const int ldapVersion = LDAP_VERSION3; 
 
     //set username
     char ldapBindUser[256];
@@ -457,9 +454,7 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
     // general
     int rc = 0; // return code
 
-    ////////////////////////////////////////////////////////////////////////////
     // setup LDAP connection
-    // https://linux.die.net/man/3/ldap_initialize
     LDAP *ldapHandle;
     rc = ldap_initialize(&ldapHandle, ldapUri);
     if (rc != LDAP_SUCCESS)
@@ -469,37 +464,19 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
     }
     printf("connected to LDAP server %s\n", ldapUri);
 
-    ////////////////////////////////////////////////////////////////////////////
     // set verison options
-    // https://linux.die.net/man/3/ldap_set_option
     rc = ldap_set_option(
         ldapHandle,
         LDAP_OPT_PROTOCOL_VERSION, // OPTION
         &ldapVersion);             // IN-Value
     if (rc != LDAP_OPT_SUCCESS)
     {
-        // https://www.openldap.org/software/man.cgi?query=ldap_err2string&sektion=3&apropos=0&manpath=OpenLDAP+2.4-Release
         fprintf(stderr, "ldap_set_option(PROTOCOL_VERSION): %s\n", ldap_err2string(rc));
         ldap_unbind_ext_s(ldapHandle, NULL, NULL);
         return EXIT_FAILURE;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // start connection secure (initialize TLS)
-    // https://linux.die.net/man/3/ldap_start_tls_s
-    // int ldap_start_tls_s(LDAP *ld,
-    //                      LDAPControl **serverctrls,
-    //                      LDAPControl **clientctrls);
-    // https://linux.die.net/man/3/ldap
-    // https://docs.oracle.com/cd/E19957-01/817-6707/controls.html
-    //    The LDAPv3, as documented in RFC 2251 - Lightweight Directory Access
-    //    Protocol (v3) (http://www.faqs.org/rfcs/rfc2251.html), allows clients
-    //    and servers to use controls as a mechanism for extending an LDAP
-    //    operation. A control is a way to specify additional information as
-    //    part of a request and a response. For example, a client can send a
-    //    control to a server as part of a search request to indicate that the
-    //    server should sort the search results before sending the results back
-    //    to the client.
     rc = ldap_start_tls_s(
         ldapHandle,
         NULL,
@@ -511,20 +488,7 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
         return EXIT_FAILURE;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
     // bind credentials
-    // https://linux.die.net/man/3/lber-types
-    // SASL (Simple Authentication and Security Layer)
-    // https://linux.die.net/man/3/ldap_sasl_bind_s
-    // int ldap_sasl_bind_s(
-    //       LDAP *ld,
-    //       const char *dn,
-    //       const char *mechanism,
-    //       struct berval *cred,
-    //       LDAPControl *sctrls[],
-    //       LDAPControl *cctrls[],
-    //       struct berval **servercredp);
-
     BerValue bindCredentials;
     bindCredentials.bv_val = (char *)ldapPwd;
     bindCredentials.bv_len = strlen(ldapPwd);
@@ -548,6 +512,7 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
 
 bool checkBlacklisted(string ipAddress)
 {
+    // find all blacklisted Users
     auto it = blackList.find(ipAddress);
     if (it == blackList.end()) 
     {  

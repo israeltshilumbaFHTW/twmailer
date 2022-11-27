@@ -21,26 +21,16 @@ int main(int argc, char **argv)
    int size;
    int isQuit;
 
-   ////////////////////////////////////////////////////////////////////////////
-   // CREATE A SOCKET
-   // https://man7.org/linux/man-pages/man2/socket.2.html
-   // https://man7.org/linux/man-pages/man7/ip.7.html
-   // https://man7.org/linux/man-pages/man7/tcp.7.html
-   // IPv4, TCP (connection oriented), IP (same as server)
    if ((create_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
    {
       perror("Socket error");
       return EXIT_FAILURE;
    }
 
-   ////////////////////////////////////////////////////////////////////////////
    // INIT ADDRESS
-   // Attention: network byte order => big endian
    memset(&address, 0, sizeof(address)); // init storage with 0
    address.sin_family = AF_INET;         // IPv4
-   // https://man7.org/linux/man-pages/man3/htons.3.html
    address.sin_port = htons(port);
-   // https://man7.org/linux/man-pages/man3/inet_aton.3.html
    if (argc < 2)
    {
       inet_aton("127.0.0.1", &address.sin_addr);
@@ -50,14 +40,11 @@ int main(int argc, char **argv)
       inet_aton(argv[1], &address.sin_addr);
    }
 
-   ////////////////////////////////////////////////////////////////////////////
    // CREATE A CONNECTION
-   // https://man7.org/linux/man-pages/man2/connect.2.html
    if (connect(create_socket,
                (struct sockaddr *)&address,
                sizeof(address)) == -1)
    {
-      // https://man7.org/linux/man-pages/man3/perror.3.html
       perror("Connect error - no server available");
       return EXIT_FAILURE;
    }
@@ -66,9 +53,7 @@ int main(int argc, char **argv)
    printf("Connection with server (%s) established\n",
           inet_ntoa(address.sin_addr));
 
-   ////////////////////////////////////////////////////////////////////////////
    // RECEIVE DATA
-   // https://man7.org/linux/man-pages/man2/recv.2.html
    size = recv(create_socket, buffer, BUF - 1, 0);
    if (size == -1)
    {
@@ -89,7 +74,7 @@ int main(int argc, char **argv)
       int userRequestType;
       std::string sender;
       char password[256];
-      std::cout << "0. Login 1.Send 2.List 3.Read 4.Delete 5.Quit" << std::endl;
+      std::cout << "|| 0.Login || 1.Send || 2.List || 3.Read || 4.Delete || 5.Quit ||\n >> ";
       std::cin >> userRequestType;
 
       if(userRequestType > 5 || userRequestType < 0) {
@@ -128,7 +113,7 @@ int main(int argc, char **argv)
 
                std::cout << "Message\n";
                std::string message;
-               
+
                //allow longer messages
                while(true) {
                   std::string line;
@@ -147,7 +132,6 @@ int main(int argc, char **argv)
             }
 
             case 2: { //LIST
-
                std::string listMessage;
                std::string method = "list\n";
                listMessage = method + sender + "\n.";
@@ -157,7 +141,6 @@ int main(int argc, char **argv)
             }
 
             case 3: { //READ
-
                std::string readMessage;
                std::string method = "read\n";
 
@@ -172,7 +155,6 @@ int main(int argc, char **argv)
             }
 
             case 4: { //DEL
-
                std::string delMessage;
                std::string method = "del\n";
 
@@ -183,7 +165,6 @@ int main(int argc, char **argv)
                delMessage = method + messageNumber + "\n";
                strcpy(buffer, delMessage.c_str());
                break;
-
             }
 
             case 5: //QUIT
@@ -195,16 +176,10 @@ int main(int argc, char **argv)
          }
       } 
 
-
       int size = strlen(buffer);
 
       isQuit = strcmp(buffer, "quit") == 0;
 
-      //////////////////////////////////////////////////////////////////////
-      // SEND DATA
-      // https://man7.org/linux/man-pages/man2/send.2.html
-      // send will fail if connection is closed, but does not set
-      // the error of send, but still the count of bytes sent
       if ((send(create_socket, buffer, size, 0)) == -1) 
       {
          perror("send error");
@@ -212,6 +187,7 @@ int main(int argc, char **argv)
       }
 
       size = recv(create_socket, buffer, BUF - 1, 0);
+
       if (size == -1)
       {
          perror("recv error");
@@ -226,18 +202,9 @@ int main(int argc, char **argv)
       {
          buffer[size] = '\0';
          printf("<< %s\n", buffer); // ignore error
-/*
-         if (strcmp("OK", buffer) != 0)
-         {
-            fprintf(stderr, "<< Server error occured, abort\n");
-            break;
-         }
-
-*/
-         }
+      }
    } while (!isQuit);
 
-   ////////////////////////////////////////////////////////////////////////////
    // CLOSES THE DESCRIPTOR
    if (create_socket != -1)
    {

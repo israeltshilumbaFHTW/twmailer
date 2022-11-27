@@ -1,14 +1,9 @@
 1. Includes gescheit strukturieren
 2. Auskommentierten Code löschen/regeln
 3. (Unnötige) Kommentare löschen/erstellen
-4. Passwort hashen (nicht in plain text
 
 6. Error Handling
   6.3. Generell paar Error Messages
 
 8. Blacklisten bei zu ofter Fehleingabe beim Passwort
 10. PDF Dokumentation
-11. (Time Synch.)
-12. Server soll jedes mal entweder mit OK oder ERR antworten
-
-14. Ordnerstruktur
