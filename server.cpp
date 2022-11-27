@@ -137,6 +137,7 @@ int main(int argc, char** argv)
             cout << "Server still running... Server ID: " << pid << endl;
         }
 
+        // BRAUCHEN WIR DAS?
         //prevent zombies
         while((cpid = waitpid(-1, NULL, WNOHANG))) {
             if((cpid == -1) && (errno != EINTR)) {
@@ -225,9 +226,6 @@ void *clientCommunication(void *data)
 
         buffer[size] = '\0';
 
-        std::string buffStr = buffer;
-        cout << "Client Message: " << buffStr << endl;
-
         //Put User Request into Vector
         vector<string> userInfo;
         string line;
@@ -247,37 +245,36 @@ void *clientCommunication(void *data)
             }
             if (checkLdapLogin(userInfo[2].c_str(), userInfo[1].c_str()) != EXIT_FAILURE)
             {
-                // const char* myPwd = userInfo[2].c_str();
-                // const char* myUsername = userInfo[1].c_str();
-                
                 loginAttempts=0;
                 string temp(userInfo[1].c_str());
                 loggedInUsername = temp; 
                 loggedIn = true;
-                //succes msg
+                //succes msg ?
             }
             else
             {
                 loginAttempts++;
-                std::cout << loginAttempts << std::endl;
                 if(loginAttempts>=3){
                     blackListUser(ipAddress);
                 }
-                //error msg
+                std::cout << loginAttempts << std::endl; //DEBUG
+                ERROR = true;
+                ERROR_MESSAGE = "Username or password is/are wrong!\n";
+                // send error msg that password or username was wrong
             }
         }
         
-        if (loggedIn == false)
+        if (loggedIn == false && userInfo[METHOD] != "quit")
         {
+            if (userInfo[METHOD] != "login")
+            {
                 std::cout << userInfo[METHOD] << std::endl;
-                // std::cout << "You must first login to do that!\n";
                 ERROR = true;
                 ERROR_MESSAGE = "You must first login to do something!\n";
-                //send this message to client
+                //send this message to client ?
+            }
         }
-        
-
-        else if (/*loggedIn ==*/ true)
+        else
         {
             if (userInfo[METHOD] == "send" || userInfo[METHOD] == "SEND")
             {
@@ -301,8 +298,8 @@ void *clientCommunication(void *data)
             {
                 cout << "List start" << endl;
 
-                    File *file = new File(loggedInUsername + ".csv");
-                    file->updateFileVector();
+                File *file = new File(loggedInUsername + ".csv");
+                file->updateFileVector();
 
                 std::vector<MessageModel *> content = file->getContent();
 
@@ -318,21 +315,6 @@ void *clientCommunication(void *data)
                 cout << "MESSAGE LIST: " << sendToClient << endl;
                 if(content.size() > 0) 
                 {
-                    cout << "Read Request" << endl;
-                    File *file = new File(loggedInUsername + ".csv");
-                    file->updateFileVector();
-
-                    int targetMessageId = stoi(userInfo[1]); //
-
-                    std::vector<MessageModel *> content = file->getContent();
-
-                    // send
-                    string sendToClient;
-                    sendToClient = "\nFrom: " + content[targetMessageId]->getSender() +
-                                "\nTo: " + content[targetMessageId]->getReceiver() +
-                                "\nSubject: " + content[targetMessageId]->getSubject() +
-                                "\nMessage: \n" + content[targetMessageId]->getMessage() + "\n";
-
                     if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
                     {
                         perror("send answer failed");
@@ -341,13 +323,11 @@ void *clientCommunication(void *data)
                 } 
                 else 
                 {
-                    File *file = new File(loggedInUsername + ".csv");
-                    file->deleteEntry(stoi(userInfo[1]));
-                    delete (file);
+                    ERROR_MESSAGE = "Empty Message List\n";
                 }
             }
 
-            else if (userInfo[METHOD] == "read" || userInfo[METHOD] == "READ")
+            else if (userInfo[METHOD] == "read")
             {
                 cout << "Read Request" << endl;
                 File *file = new File(loggedInUsername + ".csv");
@@ -401,6 +381,8 @@ void *clientCommunication(void *data)
                 return NULL;
             }
         }
+        ERROR = false;
+        ERROR_MESSAGE = "";
     } while (strcmp(buffer, "quit") != 0 && !abortRequested);
 
     loggedIn = false;

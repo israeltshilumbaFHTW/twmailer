@@ -13,8 +13,6 @@ int main(int argc, char **argv)
        return EXIT_FAILURE;
    }
 
-
-
    int port = atoi(argv[2]);
 
    int create_socket;
@@ -88,9 +86,9 @@ int main(int argc, char **argv)
 
    do
    {
-      //char message[BUF];
       int userRequestType;
       std::string sender;
+      char password[256];
       std::cout << "0. Login 1.Send 2.List 3.Read 4.Delete 5.Quit" << std::endl;
       std::cin >> userRequestType;
 
@@ -102,15 +100,13 @@ int main(int argc, char **argv)
          switch (userRequestType)
          {
             case 0: { //LOGIN
-
                std::cout << "Username:" << std::endl;
                std::cin >> sender;
 
                std::string login = "login\n";
-               std::cout << "Password: \n";
-               char password[256];
-               //strcpy(password, getPass());
-               std::cin >> password;
+
+               strcpy(password, getpass("Password: "));
+               //std::cin >> password;
 
                login = login + sender + "\n" + password + "\n.";
                strcpy(buffer, login.c_str());
@@ -119,7 +115,6 @@ int main(int argc, char **argv)
             }
 
             case 1:{ //SEND
-
                std::string sendMessage;
 
                std::string method = "send\n";
@@ -133,6 +128,7 @@ int main(int argc, char **argv)
 
                std::cout << "Message\n";
                std::string message;
+               
                //allow longer messages
                while(true) {
                   std::string line;
