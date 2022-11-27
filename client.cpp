@@ -1,17 +1,4 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <iostream>
-#include <string>
-#include "mypw.h"
-#include <iostream>
-#include <string>
-
+#include "header.h"
 ///////////////////////////////////////////////////////////////////////////////
 
 #define BUF 1024
@@ -21,6 +8,15 @@
 
 int main(int argc, char **argv)
 {
+   if(argc < 2){
+       cerr << "Arguments missing" << endl;
+       return EXIT_FAILURE;
+   }
+
+
+
+   int port = atoi(argv[2]);
+
    int create_socket;
    char buffer[BUF];
    struct sockaddr_in address;
@@ -45,7 +41,7 @@ int main(int argc, char **argv)
    memset(&address, 0, sizeof(address)); // init storage with 0
    address.sin_family = AF_INET;         // IPv4
    // https://man7.org/linux/man-pages/man3/htons.3.html
-   address.sin_port = htons(PORT);
+   address.sin_port = htons(port);
    // https://man7.org/linux/man-pages/man3/inet_aton.3.html
    if (argc < 2)
    {
@@ -97,93 +93,111 @@ int main(int argc, char **argv)
       std::string sender;
       std::cout << "0. Login 1.Send 2.List 3.Read 4.Delete 5.Quit" << std::endl;
       std::cin >> userRequestType;
-      
-      switch (userRequestType)
-      {
-         case 0: {
 
-            std::cout << "Username:" << std::endl;
-            std::cin >> sender;
+      if(userRequestType > 5 || userRequestType < 0) {
+         std::cout << "Bad Request" << std::endl;
+         strcpy(buffer, "");
+      } else {
 
-            std::string login = "login\n";
-            std::cout << "Password: \n";
-            char password[256];
-            //strcpy(password, getPass());
-            std::cin >> password;
+         switch (userRequestType)
+         {
+            case 0: { //LOGIN
 
-            login = login + sender + "\n" + password + "\n.";
-            strcpy(buffer, login.c_str());
+               std::cout << "Username:" << std::endl;
+               std::cin >> sender;
 
-            break;
+               std::string login = "login\n";
+               std::cout << "Password: \n";
+               char password[256];
+               //strcpy(password, getPass());
+               std::cin >> password;
+
+               login = login + sender + "\n" + password + "\n.";
+               strcpy(buffer, login.c_str());
+
+               break;
+            }
+
+            case 1:{ //SEND
+
+               std::string sendMessage;
+
+               std::string method = "send\n";
+               std::cout << "Receiver\n";
+               std::string receiver;
+               std::cin >> receiver;
+
+               std::cout << "Subject\n";
+               std::string subject(80, '\0');
+               std::cin >> subject;
+
+               std::cout << "Message\n";
+               std::string message;
+               //allow longer messages
+               while(true) {
+                  std::string line;
+                  std::cin >> line;
+                  message += line;
+                  if(line[line.size() - 1] == '.' ) {
+                     break;
+                  } else {
+                     message += "\n";
+                  }
+               }
+
+               sendMessage = method + receiver + "\n" + subject + "\n" + message + "\n..";
+               strcpy(buffer, sendMessage.c_str());
+               break;
+            }
+
+            case 2: { //LIST
+
+               std::string listMessage;
+               std::string method = "list\n";
+               listMessage = method + sender + "\n.";
+
+               strcpy(buffer, listMessage.c_str());
+               break;
+            }
+
+            case 3: { //READ
+
+               std::string readMessage;
+               std::string method = "read\n";
+
+               std::cout << "Message Number:" << std::endl;
+               std::string messageNumber;
+               std::cin >> messageNumber;
+
+               readMessage = method + messageNumber + "\n";
+
+               strcpy(buffer, readMessage.c_str());
+               break;
+            }
+
+            case 4: { //DEL
+
+               std::string delMessage;
+               std::string method = "del\n";
+
+               std::string messageNumber;
+               std::cin >> messageNumber;
+
+               delMessage = method + messageNumber + "\n";
+               strcpy(buffer, delMessage.c_str());
+               break;
+
+            }
+
+            case 5: //QUIT
+               strcpy(buffer, "quit");
+               break;
+            
+            default:
+               break;
          }
+      } 
 
-         case 1:{ //SEND
-
-            std::string sendMessage;
-
-            std::string method = "send\n";
-            std::cout << "Receiver\n";
-            std::string receiver;
-            std::cin >> receiver;
-
-            std::cout << "Subject\n";
-            std::string subject;
-            std::cin >> subject;
-
-            std::cout << "Message\n";
-            std::string message;
-            std::cin >> message;
-
-            sendMessage = method + receiver + "\n" + subject + "\n" + message + "\n..";
-            strcpy(buffer, sendMessage.c_str());
-            break;
-         }
-
-         case 2: { //LIST
-
-            std::string listMessage;
-            std::string method = "list\n";
-            listMessage = method + sender + "\n.";
-
-            strcpy(buffer, listMessage.c_str());
-            break;
-         }
-
-         case 3: { //READ
-
-            std::string readMessage;
-            std::string method = "read\n";
-
-            std::string messageNumber;
-            std::cin >> messageNumber;
-
-            readMessage = method + messageNumber + "\n.";
-
-            strcpy(buffer, readMessage.c_str());
-            break;
-         }
-
-         case 4: { //DEL
-
-            std::string delMessage;
-            std::string method = "del\n";
-
-            std::string messageNumber;
-            std::cin >> messageNumber;
-
-            delMessage = method + messageNumber + "\n.";
-            strcat(buffer, delMessage.c_str());
-            break;
-
-         }
-
-         case 5: //QUIT
-            strcpy(buffer, "QUIT");
-            break;
-         
-         default:
-            break;
-      }
 
       int size = strlen(buffer);
 

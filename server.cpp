@@ -9,8 +9,11 @@ int abortRequested = 0;
 int create_socket = -1;
 int new_socket = -1;
 bool REQUESTERROR = false;
+
+//HARDCODED
 string USERNAME = "if21b088";
 
+bool ERROR = false;
 ///////////////////////////////////////////////////////////////////////////////
 
 void *clientCommunication(void *data);
@@ -19,8 +22,14 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[]);
 
 ///////////////////////////////////////////////////////////////////////////////
 
-int main(void)
+int main(int argc, char** argv)
 {
+    if (argc < 2) {
+        cerr << "Arguments missing" << endl;
+        return EXIT_FAILURE;
+    }
+
+    int port = atoi(argv[1]);
     socklen_t addrlen;
     struct sockaddr_in address, cliaddress;
     int reuseValue = 1;
@@ -78,7 +87,7 @@ int main(void)
     memset(&address, 0, sizeof(address));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    address.sin_port = htons(port);
 
     ////////////////////////////////////////////////////////////////////////////
     // ASSIGN AN ADDRESS WITH PORT TO SOCKET
@@ -218,20 +227,23 @@ void *clientCommunication(void *data)
         buffer[size] = '\0';
         // code handling hier
         std::string buffStr = buffer;
-        cout << "Buffstr" << buffStr << endl;
+        cout << "Buffstr " << buffStr << endl;
         if(!REQUESTERROR) {
             
             vector<string> userInfo;
             string line;
             stringstream ss;
             ss << buffer << "\n";
-
+            int i = 0;
             while (getline(ss, line))       //save msg in vector
             {
+                cout << "debug" << endl;
                 userInfo.push_back(line);
+                cout << "User info " << userInfo[i] << endl;
+                i++;
             }
 
-            std::cout << "This is the UserInfo: " << userInfo[0] << " " << userInfo[1] << " " << userInfo[2] << std::endl;
+            //std::cout << "This is the UserInfo: " << userInfo[0] << " " << userInfo[1] << " " << userInfo[2] << std::endl;
 
             if (userInfo[0] == "login")
             {
@@ -280,16 +292,25 @@ void *clientCommunication(void *data)
                     }
 
                     cout << "MESSAGE LIST: " << sendToClient << endl;
+                    if(content.size() > 0) {
+                        if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
+                        {
+                            perror("send answer failed");
+                            return NULL;
+                        }
+                    } else {
 
-                    if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
-                    {
-                        perror("send answer failed");
-                        return NULL;
+                        if (send(*current_socket, "Empty List", 11, 0) == -1)
+                        {
+                            perror("send answer failed");
+                            return NULL;
+                        }
                     }
                 }
 
                 else if (userInfo[METHOD] == "read" || userInfo[METHOD] == "READ")
                 {
+                    cout << "Read Request" << endl;
                     File *file = new File(USERNAME + ".csv");
                     file->updateFileVector();
 
@@ -316,16 +337,27 @@ void *clientCommunication(void *data)
                     file->deleteEntry(stoi(userInfo[1]));
                     delete (file);
                 }
-                else if (strcmp(clientData, "quit\n") == 0)
+                else if (userInfo[METHOD] == "quit" || userInfo[METHOD] == "QUIT")
                 {
                     break;
                 }
 
-                if (send(*current_socket, "OK", 3, 0) == -1)
-                {
-                    perror("send answer failed");
-                    return NULL;
+
+                if (ERROR) {
+                    if (send(*current_socket, "ERR", 4, 0) == -1)
+                    {
+                        perror("send answer failed");
+                        return NULL;
+                    }
+                } else {
+
+                    if (send(*current_socket, "OK", 3, 0) == -1)
+                    {
+                        perror("send answer failed");
+                        return NULL;
+                    }
                 }
+
             }  
         }
     } while (strcmp(buffer, "quit") != 0 && !abortRequested);
@@ -394,7 +426,7 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
 {
     // LDAP config
     const char *ldapUri = "ldap://ldap.technikum-wien.at:389";
-    const int ldapVersion = LDAP_VERSION2;
+    const int ldapVersion = LDAP_VERSION2; //change to 3
 
     //set username
     char ldapBindUser[256];
