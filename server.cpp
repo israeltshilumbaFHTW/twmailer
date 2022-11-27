@@ -14,6 +14,7 @@ bool REQUESTERROR = false;
 string USERNAME = "if21b088";
 
 bool ERROR = false;
+string ERROR_MESSAGE = "internal Server error";
 ///////////////////////////////////////////////////////////////////////////////
 
 void *clientCommunication(void *data);
@@ -218,7 +219,6 @@ void *clientCommunication(void *data)
         string line;
         stringstream ss;
         ss << buffer << "\n";
-        int i = 0;
         while (getline(ss, line))       //save us in vector
         {
             userInfo.push_back(line);
@@ -236,6 +236,9 @@ void *clientCommunication(void *data)
         if (userInfo[0] != "login" && loggedIn == false)
         {
             std::cout << "You must first login to do that!\n";
+            ERROR = true;
+            ERROR_MESSAGE = "You must first login to do that!\n";
+            //send this message to client
         }
 
         else if (/*loggedIn ==*/ true)
@@ -287,11 +290,7 @@ void *clientCommunication(void *data)
                 } 
                 else 
                 {
-                    if (send(*current_socket, "Empty List", 11, 0) == -1)
-                    {
-                        perror("send answer failed");
-                        return NULL;
-                    }
+                    ERROR_MESSAGE = "Empty Message List\n";
                 }
             }
 
@@ -332,13 +331,10 @@ void *clientCommunication(void *data)
             {
                 break;
             }
-
-
-
         }  
         if (ERROR) 
         {
-            if (send(*current_socket, "ERR", 4, 0) == -1)
+            if (send(*current_socket, ERROR_MESSAGE.c_str(), strlen(ERROR_MESSAGE.c_str()), 0) == -1)
             {
                 perror("send answer failed");
                 return NULL;
