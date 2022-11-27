@@ -9,10 +9,12 @@ int abortRequested = 0;
 int create_socket = -1;
 int new_socket = -1;
 bool REQUESTERROR = false;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void *clientCommunication(void *data);
 void signalHandler(int sig);
+int checkLdapLogin(const char ldapPwd[], const char ldapUser[]);
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -167,6 +169,7 @@ void *clientCommunication(void *data)
     char clientData[BUF];
     int size;
     int *current_socket = (int *)data;
+    bool loggedIn = false;
 
     ////////////////////////////////////////////////////////////////////////////
     // SEND welcome message
@@ -176,7 +179,6 @@ void *clientCommunication(void *data)
         perror("send failed");
         return NULL;
     }
-
 
     do
     {
@@ -215,19 +217,19 @@ void *clientCommunication(void *data)
         buffer[size] = '\0';
         // code handling hier
         std::string buffStr = buffer;
-        printf("Message received: %s\n", buffer); // ignore error
+        // printf("Message received: %s\n", buffer); // ignore error
                                                   //
         //if command doesnt end with . return bad Request
-        cout << "Buffer last char: " <<  buffer[size - 1] << endl;
+        // cout << "Buffer last char: " <<  buffer[size - 1] << endl;
 
-            char lastChar = buffer[size-1];
-            string errorMessage;
-            if(lastChar != '.') {
-                errorMessage = "Invalid Request";
-                send(*current_socket, errorMessage.c_str(), strlen(errorMessage.c_str()), 0);
-                REQUESTERROR = true;
+        //     char lastChar = buffer[size-1];
+        //     string errorMessage;
+        //     if(lastChar != '.') {
+        //         errorMessage = "Invalid Request";
+        //         send(*current_socket, errorMessage.c_str(), strlen(errorMessage.c_str()), 0);
+        //         REQUESTERROR = true;
 
-            }
+        //     }
         /*
         try {
             if (strcmp((char * )buffer[size - 1], "." )) {
@@ -246,103 +248,125 @@ void *clientCommunication(void *data)
             std::cout << "DEBUG: " << requestList[0] << std::endl;
             std::cout << "Requestlist size: " << requestList.size() << std::endl;
 
-            if (requestList[0] == "send" || requestList[0] == "SEND")
+            vector<string> userInfo;
+            string line;
+            stringstream ss;
+            ss << buffer << "\n";
+
+            while (getline(ss, line))       //save msg in vector
             {
-                std::cout << "Send start" << std::endl;
-                //File *file = new File("test.csv");
-                File *file = new File(requestList[2] + ".csv");
-                file->updateFileVector();
-
-                MessageModel *sendBody = new MessageModel(requestList[1], requestList[2], requestList[3], requestList[4], file->getMessageCount());
-                file->addEntry(sendBody->getSender(), sendBody->getReceiver(), sendBody->getSubject(), sendBody->getMessage());
-                // send\nsender\ntest\nsubject\nmessage\n.
-                file->printFile();
-
-                delete (sendBody);
-                delete (file);
-                //string response = "OK";
-                //send(*current_socket, response.c_str(), strlen(response.c_str()), 0);
-                string server_time;
-                time_t seconds; 
-                seconds  = time(NULL);
-
-                stringstream ss;
-                ss << seconds;
-                server_time = ss.str();
-
-                if(send(*current_socket, server_time.c_str(), strlen(server_time.c_str()), 0) == -1) {
-                    perror("couldnt send the time");
-                }
+                userInfo.push_back(line);
             }
 
-            else if (requestList[0] == "list" || requestList[0] == "LIST")
+            std::cout << "This is the UserInfo: " << userInfo[0] << " " << userInfo[1] << " " << userInfo[2] << std::endl;
+
+            if (userInfo[0] == "login")
             {
-                cout << "List start" << endl;
-                ListBody *listBody = new ListBody(requestList[1]);
-                File *file = new File(listBody->getUsername() + ".csv");
-                file->updateFileVector();
-
-                std::vector<MessageModel *> content = file->getContent();
-
-                string sendToClient = "\nMessage Count: " + file->getMessageCount();
-                sendToClient = sendToClient + "\n";
-
-                cout << "DEBUG " << file->getMessageCount();
-                for (int i = 0; i < file->getMessageCount(); i++)
+                if (checkLdapLogin(userInfo[2].c_str(), userInfo[1].c_str()))
                 {
-                    cout << "reach";
-                    sendToClient = sendToClient + content[i]->getSubject() + " >> " + content[i]->getSender() + "\n";
+                    loggedIn = true;
+                }
+            }
+            if (loggedIn == true)
+            {
+                if (requestList[0] == "send" || requestList[0] == "SEND")
+                {
+                    std::cout << "Send start" << std::endl;
+                    //File *file = new File("test.csv");
+                    File *file = new File(requestList[2] + ".csv");
+                    file->updateFileVector();
+
+                    MessageModel *sendBody = new MessageModel(requestList[1], requestList[2], requestList[3], requestList[4], file->getMessageCount());
+                    file->addEntry(sendBody->getSender(), sendBody->getReceiver(), sendBody->getSubject(), sendBody->getMessage());
+                    // send\nsender\ntest\nsubject\nmessage\n.
+                    file->printFile();
+
+                    delete (sendBody);
+                    delete (file);
+                    //string response = "OK";
+                    //send(*current_socket, response.c_str(), strlen(response.c_str()), 0);
+                    string server_time;
+                    time_t seconds; 
+                    seconds  = time(NULL);
+
+                    stringstream ss;
+                    ss << seconds;
+                    server_time = ss.str();
+
+                    if(send(*current_socket, server_time.c_str(), strlen(server_time.c_str()), 0) == -1) {
+                        perror("couldnt send the time");
+                    }
                 }
 
-                cout << "MESSAGE LIST" << sendToClient << endl;
+                else if (requestList[0] == "list" || requestList[0] == "LIST")
+                {
+                    cout << "List start" << endl;
+                    ListBody *listBody = new ListBody(requestList[1]);
+                    File *file = new File(listBody->getUsername() + ".csv");
+                    file->updateFileVector();
 
-                if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
+                    std::vector<MessageModel *> content = file->getContent();
+
+                    string sendToClient = "\nMessage Count: " + file->getMessageCount();
+                    sendToClient = sendToClient + "\n";
+
+                    cout << "DEBUG " << file->getMessageCount();
+                    for (int i = 0; i < file->getMessageCount(); i++)
+                    {
+                        cout << "reach";
+                        sendToClient = sendToClient + content[i]->getSubject() + " >> " + content[i]->getSender() + "\n";
+                    }
+
+                    cout << "MESSAGE LIST" << sendToClient << endl;
+
+                    if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
+                    {
+                        perror("send answer failed");
+                        return NULL;
+                    }
+                    // strcpy(buffer, request_list());
+                }
+                else if (requestList[0] == "read" || requestList[0] == "READ")
+                {
+                    File *file = new File(requestList[1] + ".csv");
+                    file->updateFileVector();
+
+                    int targetMessageId = stoi(requestList[2]);
+
+                    std::vector<MessageModel *> content = file->getContent();
+
+                    // send
+                    string sendToClient;
+                    sendToClient = "\nFrom: " + content[targetMessageId]->getSender() +
+                                "\nTo: " + content[targetMessageId]->getReceiver() +
+                                "\nSubject: " + content[targetMessageId]->getSubject() +
+                                "\nMessage: \n" + content[targetMessageId]->getMessage() + "\n";
+
+                    if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
+                    {
+                        perror("send answer failed");
+                        return NULL;
+                    }
+                }
+                else if (requestList[0] == "del" || requestList[0] == "DEL")
+                {
+                    File *file = new File(requestList[1] + ".csv");
+                    file->deleteEntry(stoi(requestList[2]));
+                    delete (file);
+                }
+                else if (strcmp(clientData, "quit\n") == 0)
+                {
+                    // strcpy(buffer, buffer);
+                    break;
+                }
+
+                if (send(*current_socket, "OK", 3, 0) == -1)
                 {
                     perror("send answer failed");
                     return NULL;
                 }
-                // strcpy(buffer, request_list());
-            }
-            else if (requestList[0] == "read" || requestList[0] == "READ")
-            {
-                File *file = new File(requestList[1] + ".csv");
-                file->updateFileVector();
-
-                int targetMessageId = stoi(requestList[2]);
-
-                std::vector<MessageModel *> content = file->getContent();
-
-                // send
-                string sendToClient;
-                sendToClient = "\nFrom: " + content[targetMessageId]->getSender() +
-                            "\nTo: " + content[targetMessageId]->getReceiver() +
-                            "\nSubject: " + content[targetMessageId]->getSubject() +
-                            "\nMessage: \n" + content[targetMessageId]->getMessage() + "\n";
-
-                if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
-                {
-                    perror("send answer failed");
-                    return NULL;
-                }
-            }
-            else if (requestList[0] == "del" || requestList[0] == "DEL")
-            {
-                File *file = new File(requestList[1] + ".csv");
-                file->deleteEntry(stoi(requestList[2]));
-                delete (file);
-            }
-            else if (strcmp(clientData, "quit\n") == 0)
-            {
-                // strcpy(buffer, buffer);
-                break;
-            }
-
-            if (send(*current_socket, "OK", 3, 0) == -1)
-            {
-                perror("send answer failed");
-                return NULL;
-            }
-        }  
+            }  
+        }
     } while (strcmp(buffer, "quit") != 0 && !abortRequested);
 
     // closes/frees the descriptor if not already
@@ -404,3 +428,107 @@ void signalHandler(int sig)
         exit(sig);
     }
 }
+
+int checkLdapLogin(const char ldapPwd[], const char ldapUser[]) 
+{
+    // LDAP config
+    const char *ldapUri = "ldap://ldap.technikum-wien.at:389";
+    const int ldapVersion = LDAP_VERSION3;
+
+    //set username
+    char ldapBindUser[256];
+    sprintf(ldapBindUser, "uid=%s,ou=people,dc=technikum-wien,dc=at", ldapUser);
+    printf("user set to: %s\n", ldapBindUser);
+
+    // general
+    int rc = 0; // return code
+
+    ////////////////////////////////////////////////////////////////////////////
+    // setup LDAP connection
+    // https://linux.die.net/man/3/ldap_initialize
+    LDAP *ldapHandle;
+    rc = ldap_initialize(&ldapHandle, ldapUri);
+    if (rc != LDAP_SUCCESS)
+    {
+        fprintf(stderr, "ldap_init failed\n");
+        return -1;
+    }
+    printf("connected to LDAP server %s\n", ldapUri);
+
+    ////////////////////////////////////////////////////////////////////////////
+    // set verison options
+    // https://linux.die.net/man/3/ldap_set_option
+    rc = ldap_set_option(
+        ldapHandle,
+        LDAP_OPT_PROTOCOL_VERSION, // OPTION
+        &ldapVersion);             // IN-Value
+    if (rc != LDAP_OPT_SUCCESS)
+    {
+        // https://www.openldap.org/software/man.cgi?query=ldap_err2string&sektion=3&apropos=0&manpath=OpenLDAP+2.4-Release
+        fprintf(stderr, "ldap_set_option(PROTOCOL_VERSION): %s\n", ldap_err2string(rc));
+        ldap_unbind_ext_s(ldapHandle, NULL, NULL);
+        return EXIT_FAILURE;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // start connection secure (initialize TLS)
+    // https://linux.die.net/man/3/ldap_start_tls_s
+    // int ldap_start_tls_s(LDAP *ld,
+    //                      LDAPControl **serverctrls,
+    //                      LDAPControl **clientctrls);
+    // https://linux.die.net/man/3/ldap
+    // https://docs.oracle.com/cd/E19957-01/817-6707/controls.html
+    //    The LDAPv3, as documented in RFC 2251 - Lightweight Directory Access
+    //    Protocol (v3) (http://www.faqs.org/rfcs/rfc2251.html), allows clients
+    //    and servers to use controls as a mechanism for extending an LDAP
+    //    operation. A control is a way to specify additional information as
+    //    part of a request and a response. For example, a client can send a
+    //    control to a server as part of a search request to indicate that the
+    //    server should sort the search results before sending the results back
+    //    to the client.
+    rc = ldap_start_tls_s(
+        ldapHandle,
+        NULL,
+        NULL);
+    if (rc != LDAP_SUCCESS)
+    {
+        fprintf(stderr, "ldap_start_tls_s(): %s\n", ldap_err2string(rc));
+        ldap_unbind_ext_s(ldapHandle, NULL, NULL);
+        return EXIT_FAILURE;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    // bind credentials
+    // https://linux.die.net/man/3/lber-types
+    // SASL (Simple Authentication and Security Layer)
+    // https://linux.die.net/man/3/ldap_sasl_bind_s
+    // int ldap_sasl_bind_s(
+    //       LDAP *ld,
+    //       const char *dn,
+    //       const char *mechanism,
+    //       struct berval *cred,
+    //       LDAPControl *sctrls[],
+    //       LDAPControl *cctrls[],
+    //       struct berval **servercredp);
+
+    BerValue bindCredentials;
+    bindCredentials.bv_val = (char *)ldapPwd;
+    bindCredentials.bv_len = strlen(ldapPwd);
+    BerValue *servercredp; // server's credentials
+    rc = ldap_sasl_bind_s(
+        ldapHandle,
+        ldapBindUser,
+        LDAP_SASL_SIMPLE,
+        &bindCredentials,
+        NULL,
+        NULL,
+        &servercredp);
+    if (rc != LDAP_SUCCESS)
+    {
+        fprintf(stderr, "LDAP bind error: %s\n", ldap_err2string(rc));
+        ldap_unbind_ext_s(ldapHandle, NULL, NULL);
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
+}
+

@@ -1,3 +1,4 @@
+#include <ldap.h>
 #include <sys/types.h>
 #include <errno.h>
 #include <wait.h>
@@ -11,6 +12,7 @@
 #include <signal.h>
 #include <time.h>
 #include <sstream>
+#include <termios.h>
 #include "FileHandling/File.cpp"
 #include "ProcessRequest.cpp"
 #include "WriteFile.cpp"

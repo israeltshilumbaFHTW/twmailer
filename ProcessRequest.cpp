@@ -9,9 +9,9 @@ private:
     std::vector<std::string> requestList;
 
 public:
-            ProcessRequest(std::string &requestString) {
-                this->requestString = requestString;
-            }
+    ProcessRequest(std::string &requestString) {
+        this->requestString = requestString;
+    }
 
     void initRequest()
     {
