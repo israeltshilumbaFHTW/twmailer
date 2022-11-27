@@ -14,6 +14,7 @@ bool REQUESTERROR = false;
 bool ERROR = false;
 map<string, time_t> blackList;
 
+string ERROR_MESSAGE = "internal Server error";
 ///////////////////////////////////////////////////////////////////////////////
 
 void *clientCommunication(void *data);
@@ -26,8 +27,9 @@ void blackListUser(string ipAddress);
 
 int main(int argc, char** argv)
 {
+    //usage ../server <port>
     if (argc < 2) {
-        cerr << "Arguments missing" << endl;
+        cerr << "Usage: bin/servier <port>" << endl;
         return EXIT_FAILURE;
     }
 
@@ -36,10 +38,6 @@ int main(int argc, char** argv)
     struct sockaddr_in address, cliaddress;
     int reuseValue = 1;
 
-    ////////////////////////////////////////////////////////////////////////////
-    // SIGNAL HANDLER
-    // SIGINT (Interrup: ctrl+c)
-    // https://man7.org/linux/man-pages/man2/signal.2.html
     if (signal(SIGINT, signalHandler) == SIG_ERR)
     {
         perror("signal can not be registered");
@@ -48,10 +46,6 @@ int main(int argc, char** argv)
 
     ////////////////////////////////////////////////////////////////////////////
     // CREATE A SOCKET
-    // https://man7.org/linux/man-pages/man2/socket.2.html
-    // https://man7.org/linux/man-pages/man7/ip.7.html
-    // https://man7.org/linux/man-pages/man7/tcp.7.html
-    // IPv4, TCP (connection oriented), IP (same as client)
     if ((create_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         perror("Socket error"); // errno set by socket()
@@ -60,9 +54,6 @@ int main(int argc, char** argv)
 
     ////////////////////////////////////////////////////////////////////////////
     // SET SOCKET OPTIONS
-    // https://man7.org/linux/man-pages/man2/setsockopt.2.html
-    // https://man7.org/linux/man-pages/man7/socket.7.html
-    // socket, level, optname, optvalue, optlen
     if (setsockopt(create_socket,
                    SOL_SOCKET,
                    SO_REUSEADDR,
@@ -85,7 +76,6 @@ int main(int argc, char** argv)
 
     ////////////////////////////////////////////////////////////////////////////
     // INIT ADDRESS
-    // Attention: network byte order => big endian
     memset(&address, 0, sizeof(address));
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
@@ -110,14 +100,8 @@ int main(int argc, char** argv)
 
     while (!abortRequested)
     {
-        /////////////////////////////////////////////////////////////////////////
-        // ignore errors here... because only information message
-        // https://linux.die.net/man/3/printf
         printf("Waiting for connections...\n");
 
-        /////////////////////////////////////////////////////////////////////////
-        // ACCEPTS CONNECTION SETUP
-        // blocking, might have an accept-error on ctrl+c
         addrlen = sizeof(struct sockaddr_in);
         if ((new_socket = accept(create_socket,
                                  (struct sockaddr *)&cliaddress,
@@ -140,6 +124,7 @@ int main(int argc, char** argv)
         pid_t cpid, pid;
         pid = getpid();
 
+        //creating new process, parent process stays in while loop
         if((pid = fork() == 0)) {
 
             printf("Client connected from %s:%d...\n",
@@ -151,6 +136,7 @@ int main(int argc, char** argv)
             cout << "Server still running... Server ID: " << pid << endl;
         }
 
+        //prevent zombies
         while((cpid = waitpid(-1, NULL, WNOHANG))) {
             if((cpid == -1) && (errno != EINTR)) {
                 break;
@@ -237,27 +223,24 @@ void *clientCommunication(void *data)
         }
 
         buffer[size] = '\0';
-        // code handling hier
+
         std::string buffStr = buffer;
-        cout << "Buffstr " << buffStr << endl;
-        if(!REQUESTERROR) 
-        {            
-            vector<string> userInfo;
-            string line;
-            stringstream ss;
-            ss << buffer << "\n";
-            int i = 0;
-            while (getline(ss, line))       //save us in vector
-            {
-                cout << "debug" << endl;
-                userInfo.push_back(line);
-                cout << "User info " << userInfo[i] << endl;
-                i++;
-            }
+        cout << "Client Message: " << buffStr << endl;
 
-            //std::cout << "This is the UserInfo: " << userInfo[0] << " " << userInfo[1] << " " << userInfo[2] << std::endl;
+        //Put User Request into Vector
+        vector<string> userInfo;
+        string line;
+        stringstream ss;
+        ss << buffer << "\n";
+        while (getline(ss, line))       //save us in vector
+        {
+            userInfo.push_back(line);
+        }
 
-            if (userInfo[0] == "login")
+
+        if (userInfo[0] == "login")
+        {
+            if (checkLdapLogin(userInfo[2].c_str(), userInfo[1].c_str()) != EXIT_FAILURE)
             {
                 // const char* myPwd = userInfo[2].c_str();
                 // const char* myUsername = userInfo[1].c_str();
@@ -283,69 +266,56 @@ void *clientCommunication(void *data)
                     //error msg
                 }
             }
+        }
 
-            if (userInfo[0] != "login" && loggedIn == false)
-            {
-                std::cout << "You must first login to do that!\n";
-            }
-            else if (loggedIn == true)
-            {
-                if (userInfo[METHOD] == "send" || userInfo[METHOD] == "SEND") //brauchen wir CAPS wir geben eh nur 1-5 an
-                {
-                    std::cout << "Send start" << std::endl;
+        if (userInfo[0] != "login" && loggedIn == false)
+        {
+            std::cout << "You must first login to do that!\n";
+            ERROR = true;
+            ERROR_MESSAGE = "You must first login to do that!\n";
+            //send this message to client
+        }
 
-                    //if not set, return fail message
-                    cout << "RECEIVER: " << userInfo[RECEIVER] << endl;
-                    File *file = new File(userInfo[RECEIVER] + ".csv");
-                    file->updateFileVector();
+        else if (/*loggedIn ==*/ true)
+        {
+            if (userInfo[METHOD] == "send" || userInfo[METHOD] == "SEND")
+            {
+                std::cout << "Send start" << std::endl;
+
+                //if not set, return fail message
+                cout << "RECEIVER: " << userInfo[RECEIVER] << endl;
+                File *file = new File(userInfo[RECEIVER] + ".csv");
+                file->updateFileVector();
 
                     MessageModel *sendBody = new MessageModel(loggedInUsername, userInfo[RECEIVER], userInfo[2], userInfo[3], file->getMessageCount());
                     file->addEntry(sendBody->getSender(), sendBody->getReceiver(), sendBody->getSubject(), sendBody->getMessage());
                     cout << "New User Entries" << endl;
                     file->printFile();
 
-                    delete (sendBody);
-                    delete (file);
-                }
+                delete (sendBody);
+                delete (file);
+            }
 
-                else if (userInfo[METHOD] == "list" || userInfo[METHOD] == "LIST")
-                {
-                    cout << "List start" << endl;
+            else if (userInfo[METHOD] == "list" || userInfo[METHOD] == "LIST")
+            {
+                cout << "List start" << endl;
 
                     File *file = new File(loggedInUsername + ".csv");
                     file->updateFileVector();
 
-                    std::vector<MessageModel *> content = file->getContent();
+                std::vector<MessageModel *> content = file->getContent();
 
-                    string sendToClient = "Count: " + content.size();
-                    sendToClient = sendToClient + "\n";
+                string sendToClient = "Count: " + content.size();
+                sendToClient = sendToClient + "\n";
 
-                    cout << "Message COUNT " << file->getMessageCount() << endl;
-                    for (int i = 0; i < file->getMessageCount(); i++)
-                    {
-                        sendToClient = sendToClient + content[i]->getSubject() + " >> " + content[i]->getSender() + "\n";
-                    }
-
-                    cout << "MESSAGE LIST: " << sendToClient << endl;
-                    if(content.size() > 0) 
-                    {
-                        if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
-                        {
-                            perror("send answer failed");
-                            return NULL;
-                        }
-                    } 
-                    else 
-                    {
-                        if (send(*current_socket, "Empty List", 11, 0) == -1)
-                        {
-                            perror("send answer failed");
-                            return NULL;
-                        }
-                    }
+                cout << "Message COUNT " << file->getMessageCount() << endl;
+                for (int i = 0; i < file->getMessageCount(); i++)
+                {
+                    sendToClient = sendToClient + content[i]->getSubject() + " >> " + content[i]->getSender() + "\n";
                 }
 
-                else if (userInfo[METHOD] == "read" || userInfo[METHOD] == "READ")
+                cout << "MESSAGE LIST: " << sendToClient << endl;
+                if(content.size() > 0) 
                 {
                     cout << "Read Request" << endl;
                     File *file = new File(loggedInUsername + ".csv");
@@ -367,35 +337,67 @@ void *clientCommunication(void *data)
                         perror("send answer failed");
                         return NULL;
                     }
-                }
-
-                else if (userInfo[METHOD] == "del" || userInfo[METHOD] == "DEL")
+                } 
+                else 
                 {
                     File *file = new File(loggedInUsername + ".csv");
                     file->deleteEntry(stoi(userInfo[1]));
                     delete (file);
                 }
-                else if (userInfo[METHOD] == "quit" || userInfo[METHOD] == "QUIT")
-                {
-                    break;
-                }
+            }
 
-            }  
-            if (ERROR) 
+            else if (userInfo[METHOD] == "read" || userInfo[METHOD] == "READ")
             {
-                if (send(*current_socket, "ERR", 4, 0) == -1)
+                cout << "Read Request" << endl;
+                File *file = new File(USERNAME + ".csv");
+                file->updateFileVector();
+
+                int targetMessageId = stoi(userInfo[1]); //
+
+                //check if message id exists
+
+                std::vector<MessageModel *> content = file->getContent();
+
+                // send
+
+                string sendToClient;
+                sendToClient = "\nFrom: " + content[targetMessageId]->getSender() +
+                            "\nTo: " + content[targetMessageId]->getReceiver() +
+                            "\nSubject: " + content[targetMessageId]->getSubject() +
+                            "\nMessage: \n" + content[targetMessageId]->getMessage() + "\n";
+
+                if (send(*current_socket, sendToClient.c_str(), strlen(sendToClient.c_str()), 0) == -1)
                 {
                     perror("send answer failed");
                     return NULL;
                 }
-            } 
-            else 
+            }
+
+            else if (userInfo[METHOD] == "del" || userInfo[METHOD] == "DEL")
             {
-                if (send(*current_socket, "OK", 3, 0) == -1)
-                {
-                    perror("send answer failed");
-                    return NULL;
-                }
+                File *file = new File(USERNAME + ".csv");
+                file->deleteEntry(stoi(userInfo[1]));
+                delete (file);
+            }
+            else if (userInfo[METHOD] == "quit" || userInfo[METHOD] == "QUIT")
+            {
+                break;
+            }
+        }  
+        if (ERROR) 
+        {
+            if (send(*current_socket, ERROR_MESSAGE.c_str(), strlen(ERROR_MESSAGE.c_str()), 0) == -1)
+            {
+                perror("send answer failed");
+                return NULL;
+            }
+        } 
+        else 
+        {
+            if (send(*current_socket, "OK", 3, 0) == -1)
+            {
+                perror("send answer failed");
+                return NULL;
             }
         }
     } while (strcmp(buffer, "quit") != 0 && !abortRequested);
@@ -425,11 +427,7 @@ void signalHandler(int sig)
     {
         printf("abort Requested... "); // ignore error
         abortRequested = 1;
-        /////////////////////////////////////////////////////////////////////////
-        // With shutdown() one can initiate normal TCP close sequence ignoring
-        // the reference count.
-        // https://beej.us/guide/bgnet/html/#close-and-shutdownget-outta-my-face
-        // https://linux.die.net/man/3/shutdown
+
         if (new_socket != -1)
         {
             if (shutdown(new_socket, SHUT_RDWR) == -1)
@@ -466,7 +464,7 @@ int checkLdapLogin(const char ldapPwd[], const char ldapUser[])
 {
     // LDAP config
     const char *ldapUri = "ldap://ldap.technikum-wien.at:389";
-    const int ldapVersion = LDAP_VERSION3; //change to 3
+    const int ldapVersion = LDAP_VERSION2; //change to 3
 
     //set username
     char ldapBindUser[256];
